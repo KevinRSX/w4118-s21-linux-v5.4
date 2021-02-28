@@ -23,6 +23,8 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
 
+#include "wrr.h"
+
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
  * associated with them) to allow external modules to probe them.
@@ -5915,6 +5917,18 @@ SYSCALL_DEFINE2(sched_rr_get_interval_time32, pid_t, pid,
 	return retval;
 }
 #endif
+
+SYSCALL_DEFINE1(get_wrr_info, struct wrr_info __user *, buf)
+{
+	pr_info("%s", "Just called");
+	return -ESRCH;
+}
+
+SYSCALL_DEFINE1(set_wrr_weight, int, weight)
+{
+	pr_info("%s", "Just called");
+	return -ESRCH;
+}
 
 void sched_show_task(struct task_struct *p)
 {
