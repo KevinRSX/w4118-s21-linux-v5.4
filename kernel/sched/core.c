@@ -23,8 +23,6 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
 
-#include "wrr.h"
-
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
  * associated with them) to allow external modules to probe them.
