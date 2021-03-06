@@ -5916,16 +5916,49 @@ SYSCALL_DEFINE2(sched_rr_get_interval_time32, pid_t, pid,
 }
 #endif
 
+/**
+ * get_wrr_info - get the status and info of the WRR scheduler
+ * @buf: buffer that store the wrr_info
+ *
+ * Return: total number of CPUs. An error code otherwise.
+ */
 SYSCALL_DEFINE1(get_wrr_info, struct wrr_info __user *, buf)
 {
-	pr_info("%s", "Just called");
-	return -ESRCH;
+	int num_cpus = num_online_cpus();
+	struct wrr_info kbuf = { num_cpus };
+
+	pr_info("%s", "Call get_wrr_info");
+
+	// TODO: Find the number of WRR processes on each CPU
+
+	// TODO: Find total weight of WRR processes on each CPU
+
+	if (copy_to_user(buf, &kbuf, sizeof(struct wrr_info)))
+		return -EINVAL;
+
+	return num_cpus;
 }
 
+/**
+ * set_wrr_weight - change the weight of the WRR scheduler (root user required)
+ * @weight: new weight of the WRR scheduler
+ *
+ * Return: On success, 0. An error code otherwise.
+ */
 SYSCALL_DEFINE1(set_wrr_weight, int, weight)
 {
-	pr_info("%s", "Just called");
-	return -ESRCH;
+	pr_info("%s", "Call set_wrr_weight");
+
+	/* Check permission */
+	if (!capable(CAP_SYS_ADMIN))
+		return -EPERM;
+
+	if (weight < 1)
+		return -EINVAL;
+
+	//TODO: change the default weight
+
+	return 0;
 }
 
 void sched_show_task(struct task_struct *p)
