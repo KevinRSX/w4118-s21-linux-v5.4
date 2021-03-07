@@ -623,6 +623,16 @@ struct rt_rq {
 #endif
 };
 
+struct wrr_rq {
+	/*
+	 * Definition of wrr_rq is incomplete
+	 * More fields are needed when implementing functions
+	 */
+	unsigned int		wrr_nr_running;
+	struct sched_wrr_entity	*curr;
+	struct list_head	head;	/* start of the run queue */
+};
+
 static inline bool rt_rq_is_runnable(struct rt_rq *rt_rq)
 {
 	return rt_rq->rt_queued && rt_rq->rt_nr_running;
