@@ -6,13 +6,12 @@
 
 /*
  * TODO:
- *  - define sched_wrr_entity include/linux/sched.h
  *  - define wrr_rq kernel/sched/sched.h
  *  - register wrr_rq to rq, sched_wrr_class to sched_class
  */
 
 const struct sched_class sched_wrr_class = {
-	.next			= &rt_sched_class,
+	.next			= &fair_sched_class,
 	.enqueue_task		= enqueue_task_wrr,
 	.dequeue_task		= dequeue_task_wrr,
 	.yield_task		= yield_task_wrr,
