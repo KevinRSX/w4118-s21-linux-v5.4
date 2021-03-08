@@ -324,6 +324,7 @@ extern bool dl_cpu_busy(unsigned int cpu);
 #include <linux/psi.h>
 
 struct cfs_rq;
+struct wrr_rq;
 struct rt_rq;
 
 extern struct list_head task_groups;
@@ -889,6 +890,7 @@ struct rq {
 #endif
 
 	struct cfs_rq		cfs;
+	struct wrr_rq		wrr;
 	struct rt_rq		rt;
 	struct dl_rq		dl;
 
@@ -2202,6 +2204,7 @@ print_numa_stats(struct seq_file *m, int node, unsigned long tsf,
 #endif /* CONFIG_SCHED_DEBUG */
 
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
+extern void init_wrr_rq(struct wrr_rq *wrr_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq);
 extern void init_dl_rq(struct dl_rq *dl_rq);
 
