@@ -22,6 +22,7 @@
 #include <linux/sched/numa_balancing.h>
 #include <linux/sched/prio.h>
 #include <linux/sched/rt.h>
+#include <linux/sched/wrr.h>
 #include <linux/sched/signal.h>
 #include <linux/sched/smt.h>
 #include <linux/sched/stat.h>
@@ -157,6 +158,11 @@ static inline int fair_policy(int policy)
 	return policy == SCHED_NORMAL || policy == SCHED_BATCH;
 }
 
+static inline int wrr_policy(int policy)
+{
+	return policy == SCHED_WRR;
+}
+
 static inline int rt_policy(int policy)
 {
 	return policy == SCHED_FIFO || policy == SCHED_RR;
@@ -169,12 +175,17 @@ static inline int dl_policy(int policy)
 static inline bool valid_policy(int policy)
 {
 	return idle_policy(policy) || fair_policy(policy) ||
-		rt_policy(policy) || dl_policy(policy);
+		rt_policy(policy) || dl_policy(policy) || wrr_policy(policy);
 }
 
 static inline int task_has_idle_policy(struct task_struct *p)
 {
 	return idle_policy(p->policy);
+}
+
+static inline int task_has_wrr_policy(struct task_struct *p)
+{
+	return wrr_policy(p->policy);
 }
 
 static inline int task_has_rt_policy(struct task_struct *p)
@@ -629,10 +640,13 @@ struct wrr_rq {
 	 * Definition of wrr_rq is incomplete
 	 * More fields are needed when implementing functions
 	 */
-	unsigned int		wrr_nr_running;
 	struct sched_wrr_entity	*curr;
 	struct list_head	head;	/* start of the run queue */
 	spinlock_t		wrr_rq_lock;
+
+	/* Make get_wrr_info()'s life easier */
+	int			wrr_nr_running; /* get_wrr_info wants int */
+	int			wrr_total_weight;
 };
 
 static inline bool rt_rq_is_runnable(struct rt_rq *rt_rq)

@@ -2,22 +2,27 @@
  * wrr.c -- w4118 hmwk4 weighted round-robin scheduler
  */
 
+#include <linux/sched/wrr.h>
+
 #include "sched.h"
 
 /*
- * TODO: Add initialization code (policy, class, entity, etc) at fork time
+ * TODO: Add initialization code (policy, class, entity, etc) at
+ * fork/setscheduler time
  */
 
 /*
- * Called by sched_init. While rq lock is NOT held, we'd better not allocate
+ * Called by sched_init. Although rq lock is NOT held, we'd better not allocate
  * memory in this function
  */
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
-	wrr_rq->wrr_nr_running = 0;
 	wrr_rq->curr = NULL;
 	INIT_LIST_HEAD(&wrr_rq->head);
 	spin_lock_init(&wrr_rq->wrr_rq_lock);
+
+	wrr_rq->wrr_nr_running = 0;
+	wrr_rq->wrr_total_weight = 0;
 }
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
