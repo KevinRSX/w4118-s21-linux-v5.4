@@ -5,19 +5,21 @@
 #include "sched.h"
 
 /*
- * TODO:
- *  - define wrr_rq kernel/sched/sched.h
- *  - register wrr_rq to rq, wrr_sched_class to sched_class
+ * TODO: Add initialization code (policy, class, entity, etc) at fork time
  */
-
-void init_wrr_rq(struct wrr_rq *wrr_rq)
-{
-	/*TODO: implement this*/
-}
 
 /*
- * Adding/removing a task to/from a priority array:
+ * Called by sched_init. While rq lock is NOT held, we'd better not allocate
+ * memory in this function
  */
+void init_wrr_rq(struct wrr_rq *wrr_rq)
+{
+	wrr_rq->wrr_nr_running = 0;
+	wrr_rq->curr = NULL;
+	INIT_LIST_HEAD(&wrr_rq->head);
+	spin_lock_init(&wrr_rq->wrr_rq_lock);
+}
+
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 }

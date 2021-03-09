@@ -632,6 +632,7 @@ struct wrr_rq {
 	unsigned int		wrr_nr_running;
 	struct sched_wrr_entity	*curr;
 	struct list_head	head;	/* start of the run queue */
+	spinlock_t		wrr_rq_lock;
 };
 
 static inline bool rt_rq_is_runnable(struct rt_rq *rt_rq)
