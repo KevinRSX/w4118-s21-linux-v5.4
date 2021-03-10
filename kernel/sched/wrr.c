@@ -121,8 +121,39 @@ static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
 }
 
+/*
+ * Update the current task's runtime statistics. Skip current tasks that
+ * are not in our scheduling class.
+ *
+ * I don't know why new values are updated to se as opposed to wrr
+ * but this is the approach of update_curr_rt. Maybe it is time
+ * accounting. However, this is called before being checked in core.c.
+ * We have to implement it.
+ */
 static void update_curr_wrr(struct rq *rq)
 {
+	struct task_struct *curr = rq->curr;
+	u64 delta_exec;
+	u64 now;
+
+	if (curr->sched_class != &sched_wrr_class)
+		return;
+
+	now = rq_clock_task(rq);
+	delta_exec = now - curr->se.exec_start;
+	if (unlikely((s64)delta_exec <= 0))
+		return;
+
+	schedstat_set(curr->se.statistics.exec_max,
+		      max(curr->se.statistics.exec_max, delta_exec));
+
+	curr->se.sum_exec_runtime += delta_exec;
+	account_group_exec_runtime(curr, delta_exec);
+
+	curr->se.exec_start = now;
+	cgroup_account_cputime(curr, delta_exec);
+
+	/* The remaining code in update_curr_rt deal with rt_rq statistics */
 }
 
 const struct sched_class sched_wrr_class = {
