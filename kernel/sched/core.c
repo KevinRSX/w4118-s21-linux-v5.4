@@ -2712,11 +2712,7 @@ static void __sched_fork(unsigned long clone_flags, struct task_struct *p)
 	p->rt.on_list		= 0;
 
 	/* wrr */
-	INIT_LIST_HEAD(&p->wrr.run_list);
-	p->wrr.time_slice	= WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
-	p->wrr.weight		= WRR_DEFAULT_WEIGHT;
-	p->wrr.on_rq		= 0;
-	p->wrr.on_list		= 0;
+	init_wrr_entity(&p->wrr);
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	INIT_HLIST_HEAD(&p->preempt_notifiers);

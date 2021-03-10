@@ -6,10 +6,7 @@
 
 #include "sched.h"
 
-/*
- * TODO: Add initialization code (policy, class, entity, etc) at
- * fork/setscheduler time
- */
+/* Remaining initializtion issues: see Google doc */
 
 /*
  * Called by sched_init. Although rq lock is NOT held, we'd better not allocate
@@ -23,6 +20,21 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 
 	wrr_rq->wrr_nr_running = 0;
 	wrr_rq->wrr_total_weight = 0;
+}
+
+/*
+ * TODO (Andreas):
+ * Call this when you see fit and update the fields afterward when needed, e.g.
+ * on_rq should be 1 after it is enqueued, though I don't know if this is really
+ * needed when I copied code from rt.c
+ */
+void init_wrr_entity(struct sched_wrr_entity *wrr)
+{
+	INIT_LIST_HEAD(&wrr->run_list);
+	wrr->time_slice = WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
+	wrr->weight = WRR_DEFAULT_WEIGHT;
+	wrr->on_rq = 0;
+	wrr->on_list = 0;
 }
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -46,10 +58,13 @@ static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p,
 				   int flags)
 {
 }
+
+/* We know rq_lock is held when this is called */
 static struct task_struct *
 pick_next_task_wrr(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	struct task_struct *t;
+	struct task_struct *t = NULL;
+
 	return t;
 }
 
