@@ -8,6 +8,7 @@
 
 const struct sched_class sched_wrr_class;
 static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p);
+static void update_curr_wrr(struct rq *rq);
 
 /* Remaining initializtion issues: see Google doc */
 
@@ -152,6 +153,19 @@ static void switched_from_wrr(struct rq *rq, struct task_struct *p)
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+
+	update_curr_wrr(rq);
+
+	if (--p->wrr.time_slice)
+		return;
+
+	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
+
+	if (wrr_se->run_list.prev != wrr_se->run_list.next) {
+		requeue_task_wrr(rq, p, 0);
+		resched_curr(rq);
+	}
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)
