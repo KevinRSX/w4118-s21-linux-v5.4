@@ -6,6 +6,9 @@
 
 #include "sched.h"
 
+const struct sched_class sched_wrr_class;
+static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p);
+
 /* Remaining initializtion issues: see Google doc */
 
 /*
@@ -37,6 +40,13 @@ void init_wrr_entity(struct sched_wrr_entity *wrr)
 	wrr->on_list = 0;
 }
 
+static inline struct task_struct *wrr_task_of(struct sched_wrr_entity *wrr_se)
+{
+	return container_of(wrr_se, struct task_struct, wrr);
+}
+
+/* below are class-specific necessary scheduling functions */
+
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 }
@@ -63,9 +73,24 @@ static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p,
 static struct task_struct *
 pick_next_task_wrr(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 {
-	struct task_struct *t = NULL;
+	struct task_struct *p;
+	struct list_head *head = &rq->wrr.head;
+	struct sched_wrr_entity *wrr_se;
 
-	return t;
+	WARN_ON_ONCE(prev || rf);
+
+	if (!sched_wrr_runnable(rq))
+		return NULL;
+
+	if (head->next == head)
+		return NULL;
+
+	wrr_se = list_entry(head->next, struct sched_wrr_entity, run_list);
+	p = wrr_task_of(wrr_se);
+
+	set_next_task_wrr(rq, p);
+
+	return p;
 }
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
@@ -74,6 +99,7 @@ static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
 
 static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p)
 {
+	p->se.exec_start = rq_clock_task(rq);
 }
 
 static int balance_wrr(struct rq *rq, struct task_struct *p,
@@ -110,7 +136,9 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)
 {
-	return -1;
+	if (!task)
+		return 0;
+	return task->wrr.time_slice;
 }
 
 static void prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio)

@@ -1844,6 +1844,11 @@ static inline bool sched_rt_runnable(struct rq *rq)
 	return rq->rt.rt_queued > 0;
 }
 
+static inline bool sched_wrr_runnable(struct rq *rq)
+{
+	return rq->wrr.wrr_nr_running > 0;
+}
+
 static inline bool sched_fair_runnable(struct rq *rq)
 {
 	return rq->cfs.nr_running > 0;
