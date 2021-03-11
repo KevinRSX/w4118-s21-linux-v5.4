@@ -45,6 +45,30 @@ static inline struct task_struct *wrr_task_of(struct sched_wrr_entity *wrr_se)
 	return container_of(wrr_se, struct task_struct, wrr);
 }
 
+static inline int on_wrr_rq(struct sched_wrr_entity *wrr_se)
+{
+	return wrr_se->on_rq;
+}
+
+/*
+ * Put task to the head or the end of the run list without the overhead of
+ * dequeue followed by enqueue.
+ */
+static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
+{
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+	struct wrr_rq *wrr_rq = &rq->wrr;
+	struct list_head *wrr_head = &wrr_rq->head;
+
+	if (!on_wrr_rq(wrr_se))
+		return; /* should enqueue if not on wrr_rq */
+
+	if (head)
+		list_move(&wrr_se->run_list, wrr_head);
+	else
+		list_move_tail(&wrr_se->run_list, wrr_head);
+}
+
 /* below are class-specific necessary scheduling functions */
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -52,10 +76,6 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
-{
-}
-
-static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 {
 }
 
@@ -138,7 +158,7 @@ static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)
 {
 	if (!task)
 		return 0;
-	return task->wrr.time_slice;
+	return task->wrr.weight * WRR_TIMESLICE;
 }
 
 static void prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio)
