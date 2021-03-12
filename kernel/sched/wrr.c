@@ -74,10 +74,12 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
+	/* TODO: implement */
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
+	/* TODO: implement */
 }
 
 static void yield_task_wrr(struct rq *rq)
@@ -85,9 +87,14 @@ static void yield_task_wrr(struct rq *rq)
 	requeue_task_wrr(rq, rq->curr, 0);
 }
 
+/*
+ * Preempt the current task with a newly woken task if needed:
+ */
 static void check_preempt_curr_wrr(struct rq *rq, struct task_struct *p,
 				   int flags)
 {
+	/* wrr does not preempt current task when a new task arrives */
+	/* We may not need but called with existence unchecked. */
 }
 
 /* We know rq_lock is held when this is called */
@@ -116,6 +123,7 @@ pick_next_task_wrr(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 
 static void put_prev_task_wrr(struct rq *rq, struct task_struct *p)
 {
+	update_curr_wrr(rq);
 }
 
 static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p)
@@ -123,33 +131,46 @@ static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p)
 	p->se.exec_start = rq_clock_task(rq);
 }
 
+
+#ifdef CONFIG_SMP
 static int balance_wrr(struct rq *rq, struct task_struct *p,
 		       struct rq_flags *rf)
 {
+	/* TODO: implement */
 	return -1;
 }
 
 static int select_task_rq_wrr(struct task_struct *p, int cpu, int sd_flag,
 			      int flags)
 {
+	/* TODO: implement */
 	return -1;
 }
 
 static void rq_online_wrr(struct rq *rq)
 {
+	/* We may not need this */
 }
 
 static void rq_offline_wrr(struct rq *rq)
 {
+	/* We may not need this */
 }
 
+/*
+ * If we are not running and we are not going to reschedule soon, we should
+ * try to push tasks away now
+ */
 static void task_woken_wrr(struct rq *rq, struct task_struct *p)
 {
+	/* We may not need this */
 }
 
 static void switched_from_wrr(struct rq *rq, struct task_struct *p)
 {
+	/* We may not need this */
 }
+#endif /* CONFIG_SMP */
 
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
@@ -177,10 +198,12 @@ static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)
 
 static void prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio)
 {
+	/* We may not need but called with existence unchecked. */
 }
 
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
+	/* We may not need but called with existence unchecked. */
 }
 
 /*
