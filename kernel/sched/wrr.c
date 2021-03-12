@@ -70,16 +70,47 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 		list_move_tail(&wrr_se->run_list, wrr_head);
 }
 
+static inline struct wrr_rq *wrr_rq_of_wrr_se(struct sched_wrr_entity *wrr_se)
+{
+	struct task_struct *p = wrr_task_of(wrr_se);
+
+	return (struct wrr_rq*) task_rq(p);
+}
+
 /* below are class-specific necessary scheduling functions */
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	/* TODO: implement */
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+	struct wrr_rq *wrr_rq = &rq->wrr;
+
+	WARN_ON_ONCE(wrr_se->on_list);
+
+	list_add_tail(&wrr_se->run_list, &wrr_rq->head);
+
+	wrr_se->on_rq = 1;
+
+	/* Not handling group tasks. So, just +=1 */
+	wrr_rq->wrr_nr_running += 1;
+	wrr_rq->wrr_total_weight += wrr_se->weight;
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	/* TODO: implement */
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+	struct wrr_rq *wrr_rq = wrr_rq_of_wrr_se(wrr_se);
+
+	WARN_ON(&rq->wrr != wrr_rq);
+	WARN_ON_ONCE(!wrr_se->on_list);
+
+	wrr_se->on_rq = 0;
+
+	list_del(&wrr_se->run_list);
+
+	wrr_rq->wrr_nr_running -= 1;
+	wrr_rq->wrr_total_weight -= wrr_se->weight;
 }
 
 static void yield_task_wrr(struct rq *rq)
