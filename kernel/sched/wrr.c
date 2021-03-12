@@ -140,11 +140,29 @@ static int balance_wrr(struct rq *rq, struct task_struct *p,
 	return -1;
 }
 
+/*
+ * Compares the weight of wrr_rq on different CPUs and returns the one that
+ * has the lowest weight
+ */
 static int select_task_rq_wrr(struct task_struct *p, int cpu, int sd_flag,
 			      int flags)
 {
-	/* TODO: implement */
-	return -1;
+	int i, ret = cpu;
+	int weight, min_weight = __INT_MAX__;
+	struct rq *rq;
+
+	for_each_possible_cpu(i) {
+		rq = cpu_rq(i);
+		rcu_read_lock();
+		weight = rq->wrr.wrr_total_weight;
+		if (weight < min_weight) {
+			min_weight = weight;
+			ret = i;
+		}
+		rcu_read_unlock();
+	}
+
+	return ret;
 }
 
 static void rq_online_wrr(struct rq *rq)
