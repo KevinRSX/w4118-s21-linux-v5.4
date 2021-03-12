@@ -74,7 +74,7 @@ static inline struct wrr_rq *wrr_rq_of_wrr_se(struct sched_wrr_entity *wrr_se)
 {
 	struct task_struct *p = wrr_task_of(wrr_se);
 
-	return (struct wrr_rq*) task_rq(p);
+	return (struct wrr_rq *) task_rq(p);
 }
 
 /* below are class-specific necessary scheduling functions */
