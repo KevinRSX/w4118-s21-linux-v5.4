@@ -16,6 +16,12 @@ static void update_curr_wrr(struct rq *rq);
  * Called by sched_init. Although rq lock is NOT held, we'd better not allocate
  * memory in this function
  */
+
+void print_wrr_debug(char *str)
+{
+	pr_info("[WRR DEBUG] %s", str);
+}
+
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->curr = NULL;
@@ -196,7 +202,7 @@ static int select_task_rq_wrr(struct task_struct *p, int cpu, int sd_flag,
 	int weight, min_weight = __INT_MAX__;
 	struct rq *rq;
 
-	for_each_possible_cpu(i) {
+	for_each_online_cpu(i) {
 		rq = cpu_rq(i);
 		rcu_read_lock();
 		weight = rq->wrr.wrr_total_weight;
