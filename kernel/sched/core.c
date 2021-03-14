@@ -5922,21 +5922,29 @@ SYSCALL_DEFINE2(sched_rr_get_interval_time32, pid_t, pid,
 #endif
 
 /**
- * get_wrr_info - get the status and info of the WRR scheduler
+ * get_wrr_info - get the status and info of the WRR scheduler on each cpu
  * @buf: buffer that store the wrr_info
  *
  * Return: total number of CPUs. An error code otherwise.
  */
 SYSCALL_DEFINE1(get_wrr_info, struct wrr_info __user *, buf)
 {
+	int i;
 	int num_cpus = num_online_cpus();
-	struct wrr_info kbuf = { num_cpus };
+	struct rq *rq;
+	struct wrr_info kbuf;
 
 	pr_info("%s", "Call get_wrr_info");
 
-	// TODO: Find the number of WRR processes on each CPU
+	kbuf.num_cpus = num_cpus;
 
-	// TODO: Find total weight of WRR processes on each CPU
+	for_each_online_cpu(i) {
+		rq = cpu_rq(i);
+		rcu_read_lock();
+		kbuf.nr_running[i] = rq->wrr.wrr_nr_running;
+		kbuf.total_weight[i] = rq->wrr.wrr_total_weight;
+		rcu_read_unlock();
+	}
 
 	if (copy_to_user(buf, &kbuf, sizeof(struct wrr_info)))
 		return -EINVAL;
@@ -5954,12 +5962,12 @@ SYSCALL_DEFINE1(set_wrr_weight, int, weight)
 {
 	pr_info("%s", "Call set_wrr_weight");
 
-	/* Check permission */
-	if (!capable(CAP_SYS_ADMIN))
-		return -EPERM;
-
 	if (weight < 1)
 		return -EINVAL;
+
+	/* Check permission */
+	if (weight > WRR_DEFAULT_WEIGHT && !capable(CAP_SYS_ADMIN))
+		return -EPERM;
 
 	//TODO: change the default weight
 
