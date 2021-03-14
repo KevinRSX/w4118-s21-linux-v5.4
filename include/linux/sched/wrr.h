@@ -17,6 +17,6 @@ struct wrr_info {
  * Timeslices get refilled after they expire.
  */
 #define WRR_TIMESLICE		(10 * HZ / 1000)
-#define WRR_DEFAULT_WEIGHT	1
+#define WRR_DEFAULT_WEIGHT	10
 
 #endif /* LINUX_SCHED_WRR_H_ */
