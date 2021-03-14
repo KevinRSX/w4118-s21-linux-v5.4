@@ -101,7 +101,6 @@ static inline struct wrr_rq *wrr_rq_of_se(struct sched_wrr_entity *wrr_se)
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	/* TODO: implement */
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	struct wrr_rq *wrr_rq = &rq->wrr;
 
@@ -118,12 +117,11 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
-	/* TODO: implement */
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	struct wrr_rq *wrr_rq = wrr_rq_of_wrr_se(wrr_se);
 
 	WARN_ON(&rq->wrr != wrr_rq);
-	WARN_ON_ONCE(!wrr_se->on_list);
+	WARN_ON_ONCE(!wrr_se->on_rq);
 
 	wrr_se->on_rq = 0;
 
@@ -252,10 +250,9 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
 
-	if (wrr_se->run_list.prev != wrr_se->run_list.next) {
+	if (wrr_se->run_list.prev != wrr_se->run_list.next)
 		requeue_task_wrr(rq, p, 0);
-		resched_curr(rq);
-	}
+	resched_curr(rq);
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)
@@ -273,6 +270,13 @@ static void prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio)
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
 	/* We may not need but called with existence unchecked. */
+	struct sched_wrr_entity *wrr = &p->wrr;
+
+	INIT_LIST_HEAD(&wrr->run_list);
+	wrr->time_slice = WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
+	wrr->weight = WRR_DEFAULT_WEIGHT;
+	wrr->on_rq = 0;
+	wrr->on_list = 0;
 }
 
 /*
