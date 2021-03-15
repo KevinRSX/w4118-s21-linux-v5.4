@@ -12,15 +12,21 @@ static void update_curr_wrr(struct rq *rq);
 
 /* Remaining initializtion issues: see Google doc */
 
+void debug_print_wrr_se(struct sched_wrr_entity *wrr_se)
+{
+	print_wrr_debug("==========================================");
+	print_wrr_debug("wrr_se->time_slice:\t%d", wrr_se->time_slice);
+	print_wrr_debug("wrr_se->weight:\t%d", wrr_se->weight);
+	print_wrr_debug("wrr_se->on_rq:\t%d", wrr_se->on_rq);
+	print_wrr_debug("wrr_se->on_list:\t%d", wrr_se->on_list);
+	print_wrr_debug("==========================================");
+}
+
 /*
  * Called by sched_init. Although rq lock is NOT held, we'd better not allocate
  * memory in this function
  */
 
-void print_wrr_debug(char *str)
-{
-	pr_info("[WRR DEBUG] %s", str);
-}
 
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
@@ -67,6 +73,11 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct list_head *wrr_head = &wrr_rq->head;
 
+	print_wrr_debug("%s: \tp->pid = %d \tp->comm = %s", __func__, p->pid,
+			p->comm);
+
+	debug_print_wrr_se(wrr_se);
+
 	if (!on_wrr_rq(wrr_se))
 		return; /* should enqueue if not on wrr_rq */
 
@@ -74,13 +85,6 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 		list_move(&wrr_se->run_list, wrr_head);
 	else
 		list_move_tail(&wrr_se->run_list, wrr_head);
-}
-
-static inline struct wrr_rq *wrr_rq_of_wrr_se(struct sched_wrr_entity *wrr_se)
-{
-	struct task_struct *p = wrr_task_of(wrr_se);
-
-	return &task_rq(p)->wrr;
 }
 
 static inline struct rq *rq_of_wrr_se(struct sched_wrr_entity *wrr_se)
@@ -97,6 +101,11 @@ static inline struct wrr_rq *wrr_rq_of_se(struct sched_wrr_entity *wrr_se)
 	return &rq->wrr;
 }
 
+static inline struct rq *rq_of_wrr_rq(struct wrr_rq *wrr_rq)
+{
+	return container_of(wrr_rq, struct rq, wrr);
+}
+
 /* below are class-specific necessary scheduling functions */
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -104,31 +113,48 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	struct wrr_rq *wrr_rq = &rq->wrr;
 
+	print_wrr_debug("Before enqueue:");
+	debug_print_wrr_se(wrr_se);
+	print_wrr_debug("%s: \tp->pid = %d \tp->comm = %s", __func__, p->pid,
+			p->comm);
+
+	WARN_ON(on_wrr_rq(wrr_se));
 	WARN_ON_ONCE(wrr_se->on_list);
 
 	list_add_tail(&wrr_se->run_list, &wrr_rq->head);
 
 	wrr_se->on_rq = 1;
-
-	/* Not handling group tasks. So, just +=1 */
+	wrr_se->on_list = 1;
 	wrr_rq->wrr_nr_running += 1;
 	wrr_rq->wrr_total_weight += wrr_se->weight;
+	print_wrr_debug("After enqueue:");
+	debug_print_wrr_se(wrr_se);
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-	struct wrr_rq *wrr_rq = wrr_rq_of_wrr_se(wrr_se);
+	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
 
-	WARN_ON(&rq->wrr != wrr_rq);
-	WARN_ON_ONCE(!wrr_se->on_rq);
+	print_wrr_debug("Before dequeue:");
+	debug_print_wrr_se(wrr_se);
+	print_wrr_debug("%s: \tp->pid = %d \tp->comm = %s", __func__, p->pid,
+			p->comm);
+
+	update_curr_wrr(rq);
+
+	WARN_ON(!on_wrr_rq(wrr_se));
+	WARN_ON_ONCE(!wrr_se->on_list);
+
+	list_del_init(&wrr_se->run_list);
 
 	wrr_se->on_rq = 0;
-
-	list_del(&wrr_se->run_list);
-
+	wrr_se->on_list = 0;
 	wrr_rq->wrr_nr_running -= 1;
 	wrr_rq->wrr_total_weight -= wrr_se->weight;
+
+	print_wrr_debug("After dequeue:");
+	debug_print_wrr_se(wrr_se);
 }
 
 static void yield_task_wrr(struct rq *rq)
@@ -200,6 +226,8 @@ static int select_task_rq_wrr(struct task_struct *p, int cpu, int sd_flag,
 	int weight, min_weight = __INT_MAX__;
 	struct rq *rq;
 
+	print_wrr_debug("select_task_rq_wrr");
+
 	for_each_online_cpu(i) {
 		rq = cpu_rq(i);
 		rcu_read_lock();
@@ -243,6 +271,10 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 
+	print_wrr_debug("%s: \tp->pid = %d \tp->comm = %s", __func__, p->pid,
+			p->comm);
+	debug_print_wrr_se(wrr_se);
+
 	update_curr_wrr(rq);
 
 	if (--p->wrr.time_slice)
@@ -270,13 +302,13 @@ static void prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio)
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
 	/* We may not need but called with existence unchecked. */
-	struct sched_wrr_entity *wrr = &p->wrr;
+	// struct sched_wrr_entity *wrr = &p->wrr;
 
-	INIT_LIST_HEAD(&wrr->run_list);
-	wrr->time_slice = WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
-	wrr->weight = WRR_DEFAULT_WEIGHT;
-	wrr->on_rq = 0;
-	wrr->on_list = 0;
+	// INIT_LIST_HEAD(&wrr->run_list);
+	// wrr->time_slice = WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
+	// wrr->weight = WRR_DEFAULT_WEIGHT;
+	// wrr->on_rq = 0;
+	// wrr->on_list = 0;
 }
 
 /*
@@ -315,7 +347,7 @@ static void update_curr_wrr(struct rq *rq)
 }
 
 const struct sched_class sched_wrr_class = {
-	.next			= &fair_sched_class,
+	.next			= &idle_sched_class,
 	.enqueue_task		= enqueue_task_wrr,
 	.dequeue_task		= dequeue_task_wrr,
 	.yield_task		= yield_task_wrr,

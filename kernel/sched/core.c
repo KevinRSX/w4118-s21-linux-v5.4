@@ -2883,6 +2883,8 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
+	else if (task_has_wrr_policy(p))
+		p->sched_class = &sched_wrr_class;
 	else
 		p->sched_class = &fair_sched_class;
 
@@ -5814,6 +5816,7 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 		ret = MAX_USER_RT_PRIO-1;
 		break;
 	case SCHED_DEADLINE:
+	case SCHED_WRR:
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
@@ -5841,6 +5844,7 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 		ret = 1;
 		break;
 	case SCHED_DEADLINE:
+	case SCHED_WRR:
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:

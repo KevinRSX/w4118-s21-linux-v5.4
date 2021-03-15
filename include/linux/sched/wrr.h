@@ -19,4 +19,7 @@ struct wrr_info {
 #define WRR_TIMESLICE		(10 * HZ / 1000)
 #define WRR_DEFAULT_WEIGHT	10
 
+#define print_wrr_debug(fmt, ...) \
+	pr_info("[WRR DEBUG] " pr_fmt(fmt), ##__VA_ARGS__)
+
 #endif /* LINUX_SCHED_WRR_H_ */
