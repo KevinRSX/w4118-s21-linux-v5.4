@@ -83,6 +83,24 @@ int born_idle_child()
 	return pid;
 }
 
+int born_io_child()
+{
+	pid_t pid;
+	pid = fork();
+	if (!pid) {
+		while (1) {
+			char buf[] = "4118";
+			int input;
+			sscanf(buf, "%d", &input);
+			snprintf(buf, 5, "%d", input);
+		}
+	} else if (pid < 0) {
+		fprintf(stderr, "fork err: %s", strerror(errno));
+		exit(-1);
+	}
+	return pid;
+}
+
 /*wrapper of the sched_setscheduler*/
 void setscheduler(pid_t pid, int policy)
 {
@@ -103,10 +121,10 @@ int main(void)
 	get_and_print_wrr_info();
 
 	//Set some processes to use SCHED_WRR
-	int children_num = 20;
+	int children_num = 220;
 	int children_pids[children_num];
 	for (int i = 0; i < children_num; i++) {
-		children_pids[i] = born_idle_child();
+		children_pids[i] = born_io_child();
 		setscheduler(children_pids[i], SCHED_WRR);
 	}
 
