@@ -6130,7 +6130,8 @@ void init_idle(struct task_struct *idle, int cpu)
 	/*
 	 * The idle tasks have their own, simple scheduling class:
 	 */
-	idle->sched_class = &idle_sched_class;
+	idle->sched_class = &idle_sched_class;	//TODO: MAY NEED CHANGES
+
 	ftrace_graph_init_idle_task(idle, cpu);
 	vtime_init_idle(idle, cpu);
 #ifdef CONFIG_SMP

@@ -12,16 +12,6 @@ static void update_curr_wrr(struct rq *rq);
 
 /* Remaining initializtion issues: see Google doc */
 
-void debug_print_wrr_se(struct sched_wrr_entity *wrr_se)
-{
-	print_wrr_debug("==========================================");
-	print_wrr_debug("wrr_se->time_slice:\t%d", wrr_se->time_slice);
-	print_wrr_debug("wrr_se->weight:\t%d", wrr_se->weight);
-	print_wrr_debug("wrr_se->on_rq:\t%d", wrr_se->on_rq);
-	print_wrr_debug("wrr_se->on_list:\t%d", wrr_se->on_list);
-	print_wrr_debug("==========================================");
-}
-
 /*
  * Called by sched_init. Although rq lock is NOT held, we'd better not allocate
  * memory in this function
@@ -73,11 +63,6 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 	struct wrr_rq *wrr_rq = &rq->wrr;
 	struct list_head *wrr_head = &wrr_rq->head;
 
-	print_wrr_debug("%s: \tp->pid = %d \tp->comm = %s", __func__, p->pid,
-			p->comm);
-
-	debug_print_wrr_se(wrr_se);
-
 	if (!on_wrr_rq(wrr_se))
 		return; /* should enqueue if not on wrr_rq */
 
@@ -113,11 +98,6 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	struct wrr_rq *wrr_rq = &rq->wrr;
 
-	print_wrr_debug("Before enqueue:");
-	debug_print_wrr_se(wrr_se);
-	print_wrr_debug("%s: \tp->pid = %d \tp->comm = %s", __func__, p->pid,
-			p->comm);
-
 	WARN_ON(on_wrr_rq(wrr_se));
 	WARN_ON_ONCE(wrr_se->on_list);
 
@@ -127,34 +107,25 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	wrr_se->on_list = 1;
 	wrr_rq->wrr_nr_running += 1;
 	wrr_rq->wrr_total_weight += wrr_se->weight;
-	print_wrr_debug("After enqueue:");
-	debug_print_wrr_se(wrr_se);
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-	struct wrr_rq *wrr_rq = wrr_rq_of_se(wrr_se);
+	struct wrr_rq *wrr_rq;
 
-	print_wrr_debug("Before dequeue:");
-	debug_print_wrr_se(wrr_se);
-	print_wrr_debug("%s: \tp->pid = %d \tp->comm = %s", __func__, p->pid,
-			p->comm);
-
-	update_curr_wrr(rq);
+	wrr_rq = wrr_rq_of_se(wrr_se);
 
 	WARN_ON(!on_wrr_rq(wrr_se));
 	WARN_ON_ONCE(!wrr_se->on_list);
 
 	list_del_init(&wrr_se->run_list);
 
-	wrr_se->on_rq = 0;
-	wrr_se->on_list = 0;
 	wrr_rq->wrr_nr_running -= 1;
 	wrr_rq->wrr_total_weight -= wrr_se->weight;
 
-	print_wrr_debug("After dequeue:");
-	debug_print_wrr_se(wrr_se);
+	wrr_se->on_rq = 0;
+	wrr_se->on_list = 0;
 }
 
 static void yield_task_wrr(struct rq *rq)
@@ -226,8 +197,6 @@ static int select_task_rq_wrr(struct task_struct *p, int cpu, int sd_flag,
 	int weight, min_weight = __INT_MAX__;
 	struct rq *rq;
 
-	print_wrr_debug("select_task_rq_wrr");
-
 	for_each_online_cpu(i) {
 		rq = cpu_rq(i);
 		rcu_read_lock();
@@ -270,12 +239,6 @@ static void switched_from_wrr(struct rq *rq, struct task_struct *p)
 static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-
-	print_wrr_debug("%s: \tp->pid = %d \tp->comm = %s", __func__, p->pid,
-			p->comm);
-	debug_print_wrr_se(wrr_se);
-
-	update_curr_wrr(rq);
 
 	if (--p->wrr.time_slice)
 		return;
