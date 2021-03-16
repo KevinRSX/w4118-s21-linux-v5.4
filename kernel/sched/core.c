@@ -2883,10 +2883,11 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
-	else if ((task_has_wrr_policy(p)))
-		p->sched_class = &sched_wrr_class;
 	else
 		p->sched_class = &fair_sched_class;
+	
+	if ((task_has_wrr_policy(p)))
+		p->sched_class = &sched_wrr_class;
 
 	init_entity_runnable_average(&p->se);
 
@@ -4735,10 +4736,11 @@ static void __setscheduler(struct rq *rq, struct task_struct *p,
 		p->sched_class = &dl_sched_class;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
-	else if (task_has_wrr_policy(p))
-		p->sched_class = &sched_wrr_class;
 	else
 		p->sched_class = &fair_sched_class;
+	
+	if (task_has_wrr_policy(p))
+		p->sched_class = &sched_wrr_class;
 }
 
 /*
