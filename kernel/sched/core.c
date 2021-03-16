@@ -4471,6 +4471,9 @@ void rt_mutex_setprio(struct task_struct *p, struct task_struct *pi_task)
 		p->sched_class = &fair_sched_class;
 	}
 
+	if (task_has_wrr_policy(p))
+		p->sched_class = &sched_wrr_class;
+
 	p->prio = prio;
 
 	if (queued)

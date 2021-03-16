@@ -76,13 +76,6 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 		list_move_tail(&wrr_se->run_list, wrr_head);
 }
 
-static inline struct wrr_rq *wrr_rq_of_wrr_se(struct sched_wrr_entity *wrr_se)
-{
-	struct task_struct *p = wrr_task_of(wrr_se);
-
-	return &task_rq(p)->wrr;
-}
-
 static inline struct rq *rq_of_wrr_se(struct sched_wrr_entity *wrr_se)
 {
 	struct task_struct *p = wrr_task_of(wrr_se);
@@ -97,6 +90,11 @@ static inline struct wrr_rq *wrr_rq_of_se(struct sched_wrr_entity *wrr_se)
 	return &rq->wrr;
 }
 
+static inline struct rq *rq_of_wrr_rq(struct wrr_rq *wrr_rq)
+{
+	return container_of(wrr_rq, struct rq, wrr);
+}
+
 /* below are class-specific necessary scheduling functions */
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -104,13 +102,13 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	struct sched_wrr_entity *wrr_se = &p->wrr;
 	struct wrr_rq *wrr_rq = &rq->wrr;
 
+	WARN_ON(on_wrr_rq(wrr_se));
 	WARN_ON_ONCE(wrr_se->on_list);
 
 	list_add_tail(&wrr_se->run_list, &wrr_rq->head);
 
 	wrr_se->on_rq = 1;
-
-	/* Not handling group tasks. So, just +=1 */
+	wrr_se->on_list = 1;
 	wrr_rq->wrr_nr_running += 1;
 	wrr_rq->wrr_total_weight += wrr_se->weight;
 }
@@ -118,17 +116,20 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-	struct wrr_rq *wrr_rq = wrr_rq_of_wrr_se(wrr_se);
+	struct wrr_rq *wrr_rq;
 
-	WARN_ON(&rq->wrr != wrr_rq);
-	WARN_ON_ONCE(!wrr_se->on_rq);
+	wrr_rq = wrr_rq_of_se(wrr_se);
 
-	wrr_se->on_rq = 0;
+	WARN_ON(!on_wrr_rq(wrr_se));
+	WARN_ON_ONCE(!wrr_se->on_list);
 
-	list_del(&wrr_se->run_list);
+	list_del_init(&wrr_se->run_list);
 
 	wrr_rq->wrr_nr_running -= 1;
 	wrr_rq->wrr_total_weight -= wrr_se->weight;
+
+	wrr_se->on_rq = 0;
+	wrr_se->on_list = 0;
 }
 
 static void yield_task_wrr(struct rq *rq)
@@ -270,13 +271,13 @@ static void prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio)
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
 	/* We may not need but called with existence unchecked. */
-	struct sched_wrr_entity *wrr = &p->wrr;
+	// struct sched_wrr_entity *wrr = &p->wrr;
 
-	INIT_LIST_HEAD(&wrr->run_list);
-	wrr->time_slice = WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
-	wrr->weight = WRR_DEFAULT_WEIGHT;
-	wrr->on_rq = 0;
-	wrr->on_list = 0;
+	// INIT_LIST_HEAD(&wrr->run_list);
+	// wrr->time_slice = WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
+	// wrr->weight = WRR_DEFAULT_WEIGHT;
+	// wrr->on_rq = 0;
+	// wrr->on_list = 0;
 }
 
 /*
