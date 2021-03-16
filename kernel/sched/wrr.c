@@ -107,6 +107,7 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
 	list_add_tail(&wrr_se->run_list, &wrr_rq->head);
 
+	wrr_se->time_slice = wrr_se->weight * WRR_TIMESLICE;
 	wrr_se->on_rq = 1;
 	wrr_se->on_list = 1;
 	wrr_rq->wrr_nr_running += 1;
@@ -251,9 +252,10 @@ static void task_tick_wrr(struct rq *rq, struct task_struct *p, int queued)
 
 	p->wrr.time_slice = p->wrr.weight * WRR_TIMESLICE;
 
-	if (wrr_se->run_list.prev != wrr_se->run_list.next)
+	if (wrr_se->run_list.prev != wrr_se->run_list.next) {
 		requeue_task_wrr(rq, p, 0);
-	resched_curr(rq);
+		resched_curr(rq);
+	}
 }
 
 static unsigned int get_rr_interval_wrr(struct rq *rq, struct task_struct *task)

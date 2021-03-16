@@ -2863,7 +2863,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL; /* set to SCHED_WRR later */
+			p->policy = SCHED_NORMAL; /* TODO: change to WRR */
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -2883,6 +2883,8 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
+	else if ((task_has_wrr_policy(p)))
+		p->sched_class = &sched_wrr_class;
 	else
 		p->sched_class = &fair_sched_class;
 
@@ -6763,6 +6765,8 @@ void __init sched_init(void)
 	 * when this runqueue becomes "idle".
 	 */
 	init_idle(current, smp_processor_id());
+	/* TODO: change to wrr class, uncomment the following line */
+	// current->sched_class = &sched_wrr_class;
 
 	calc_load_update = jiffies + LOAD_FREQ;
 
