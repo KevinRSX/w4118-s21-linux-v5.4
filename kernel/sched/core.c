@@ -5973,16 +5973,29 @@ SYSCALL_DEFINE1(get_wrr_info, struct wrr_info __user *, buf)
  */
 SYSCALL_DEFINE1(set_wrr_weight, int, weight)
 {
+	struct task_struct *p = current;
+	struct sched_wrr_entity *wrr_se = &p->wrr;
+	struct wrr_rq *wrr_rq;
+	int prev_weight, delta_weight;
+
 	pr_info("%s", "Call set_wrr_weight");
 
-	if (weight < 1)
+	if (weight < 1 || weight > WRR_MAX_WEIGHT)
 		return -EINVAL;
 
 	/* Check permission */
 	if (weight > WRR_DEFAULT_WEIGHT && !capable(CAP_SYS_ADMIN))
 		return -EPERM;
 
-	//TODO: change the default weight
+	rcu_read_lock();
+	wrr_rq = &task_rq(p)->wrr;
+	spin_lock_irq(&wrr_rq->wrr_rq_lock);
+	prev_weight = wrr_se->weight;
+	delta_weight = weight - prev_weight;
+	wrr_se->weight = weight;
+	wrr_rq->wrr_total_weight += delta_weight;
+	spin_unlock_irq(&wrr_rq->wrr_rq_lock);
+	rcu_read_unlock();
 
 	return 0;
 }

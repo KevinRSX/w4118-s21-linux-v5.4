@@ -102,6 +102,7 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	WARN_ON(on_wrr_rq(wrr_se));
 	WARN_ON_ONCE(wrr_se->on_list);
 
+	spin_lock(&wrr_rq->wrr_rq_lock);
 	list_add_tail(&wrr_se->run_list, &wrr_rq->head);
 
 	wrr_se->time_slice = wrr_se->weight * WRR_TIMESLICE;
@@ -109,6 +110,8 @@ static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	wrr_se->on_list = 1;
 	wrr_rq->wrr_nr_running += 1;
 	wrr_rq->wrr_total_weight += wrr_se->weight;
+	spin_unlock(&wrr_rq->wrr_rq_lock);
+
 }
 
 static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
@@ -121,6 +124,7 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 	WARN_ON(!on_wrr_rq(wrr_se));
 	WARN_ON_ONCE(!wrr_se->on_list);
 
+	spin_lock(&wrr_rq->wrr_rq_lock);
 	list_del_init(&wrr_se->run_list);
 
 	wrr_rq->wrr_nr_running -= 1;
@@ -128,6 +132,7 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
 	wrr_se->on_rq = 0;
 	wrr_se->on_list = 0;
+	spin_unlock(&wrr_rq->wrr_rq_lock);
 }
 
 static void yield_task_wrr(struct rq *rq)

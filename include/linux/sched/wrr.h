@@ -18,5 +18,6 @@ struct wrr_info {
  */
 #define WRR_TIMESLICE		(10 * HZ / 1000)
 #define WRR_DEFAULT_WEIGHT	10
+#define WRR_MAX_WEIGHT		20
 
 #endif /* LINUX_SCHED_WRR_H_ */
