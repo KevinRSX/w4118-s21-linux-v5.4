@@ -4898,7 +4898,8 @@ recheck:
 	 * but store a possible modification of reset_on_fork.
 	 */
 	if (unlikely(policy == p->policy)) {
-		if ((fair_policy(policy) || wrr_policy(policy)) && attr->sched_nice != task_nice(p))
+		if ((fair_policy(policy) || wrr_policy(policy)) &&
+		    attr->sched_nice != task_nice(p))
 			goto change;
 		if (rt_policy(policy) && attr->sched_priority != p->rt_priority)
 			goto change;
