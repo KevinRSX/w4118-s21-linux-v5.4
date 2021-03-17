@@ -2863,7 +2863,7 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 */
 	if (unlikely(p->sched_reset_on_fork)) {
 		if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
-			p->policy = SCHED_NORMAL; /* TODO: change to WRR */
+			p->policy = SCHED_WRR; /* TODO: change to WRR */
 			p->static_prio = NICE_TO_PRIO(0);
 			p->rt_priority = 0;
 		} else if (PRIO_TO_NICE(p->static_prio) < 0)
@@ -2883,11 +2883,10 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 		return -EAGAIN;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
+	else if ((task_has_wrr_policy(p)))
+		p->sched_class = &sched_wrr_class;
 	else
 		p->sched_class = &fair_sched_class;
-	
-	if ((task_has_wrr_policy(p)))
-		p->sched_class = &sched_wrr_class;
 
 	init_entity_runnable_average(&p->se);
 
@@ -3920,14 +3919,19 @@ pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	 * opportunity to pull in more work from other CPUs.
 	 */
 	if (likely((prev->sched_class == &idle_sched_class ||
-		    prev->sched_class == &fair_sched_class) &&
-		   rq->nr_running == rq->cfs.h_nr_running)) {
+		    prev->sched_class == &sched_wrr_class) &&
+		   rq->nr_running == rq->wrr.wrr_nr_running)) {
 
-		p = fair_sched_class.pick_next_task(rq, prev, rf);
+		p = sched_wrr_class.pick_next_task(rq, prev, rf);
 		if (unlikely(p == RETRY_TASK))
 			goto restart;
 
 		/* Assumes fair_sched_class->next == idle_sched_class */
+
+		/* In this sense, wr_sched_class->next == fair_sched_class*/
+		if (unlikely(!p))
+			p = fair_sched_class.pick_next_task(rq, prev, rf);
+
 		if (unlikely(!p))
 			p = idle_sched_class.pick_next_task(rq, prev, rf);
 
@@ -4471,11 +4475,11 @@ void rt_mutex_setprio(struct task_struct *p, struct task_struct *pi_task)
 			p->dl.dl_boosted = 0;
 		if (rt_prio(oldprio))
 			p->rt.timeout = 0;
-		p->sched_class = &fair_sched_class;
+		if (task_has_wrr_policy(p))
+			p->sched_class = &sched_wrr_class;
+		else
+			p->sched_class = &fair_sched_class;
 	}
-
-	if (task_has_wrr_policy(p))
-		p->sched_class = &sched_wrr_class;
 
 	p->prio = prio;
 
@@ -4698,7 +4702,7 @@ static void __setscheduler_params(struct task_struct *p,
 
 	if (dl_policy(policy))
 		__setparam_dl(p, attr);
-	else if (fair_policy(policy))
+	else if (wrr_policy(policy) || fair_policy(policy))
 		p->static_prio = NICE_TO_PRIO(attr->sched_nice);
 
 	/*
@@ -4736,11 +4740,10 @@ static void __setscheduler(struct rq *rq, struct task_struct *p,
 		p->sched_class = &dl_sched_class;
 	else if (rt_prio(p->prio))
 		p->sched_class = &rt_sched_class;
+	else if (task_has_wrr_policy(p))
+		p->sched_class = &sched_wrr_class;
 	else
 		p->sched_class = &fair_sched_class;
-	
-	if (task_has_wrr_policy(p))
-		p->sched_class = &sched_wrr_class;
 }
 
 /*
@@ -4806,7 +4809,7 @@ recheck:
 	 * Allow unprivileged RT tasks to decrease priority:
 	 */
 	if (user && !capable(CAP_SYS_NICE)) {
-		if (fair_policy(policy)) {
+		if (wrr_policy(policy) || fair_policy(policy)) {
 			if (attr->sched_nice < task_nice(p) &&
 			    !can_nice(p, attr->sched_nice))
 				return -EPERM;
@@ -4895,7 +4898,7 @@ recheck:
 	 * but store a possible modification of reset_on_fork.
 	 */
 	if (unlikely(policy == p->policy)) {
-		if (fair_policy(policy) && attr->sched_nice != task_nice(p))
+		if ((fair_policy(policy) || wrr_policy(policy)) && attr->sched_nice != task_nice(p))
 			goto change;
 		if (rt_policy(policy) && attr->sched_priority != p->rt_priority)
 			goto change;
@@ -5821,6 +5824,7 @@ SYSCALL_DEFINE1(sched_get_priority_max, int, policy)
 		ret = MAX_USER_RT_PRIO-1;
 		break;
 	case SCHED_DEADLINE:
+	case SCHED_WRR:
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
@@ -5848,6 +5852,7 @@ SYSCALL_DEFINE1(sched_get_priority_min, int, policy)
 		ret = 1;
 		break;
 	case SCHED_DEADLINE:
+	case SCHED_WRR:
 	case SCHED_NORMAL:
 	case SCHED_BATCH:
 	case SCHED_IDLE:
@@ -5941,7 +5946,7 @@ SYSCALL_DEFINE1(get_wrr_info, struct wrr_info __user *, buf)
 	struct rq *rq;
 	struct wrr_info kbuf;
 
-	pr_info("%s", "Call get_wrr_info");
+	pr_info("%s", "HELL YES Call get_wrr_info");
 
 	kbuf.num_cpus = num_cpus;
 
@@ -6894,7 +6899,7 @@ void normalize_rt_tasks(void)
 {
 	struct task_struct *g, *p;
 	struct sched_attr attr = {
-		.sched_policy = SCHED_NORMAL,
+		.sched_policy = SCHED_WRR,
 	};
 
 	read_lock(&tasklist_lock);

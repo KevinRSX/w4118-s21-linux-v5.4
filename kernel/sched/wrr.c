@@ -17,11 +17,6 @@ static void update_curr_wrr(struct rq *rq);
  * memory in this function
  */
 
-void print_wrr_debug(char *str)
-{
-	pr_info("[WRR DEBUG] %s", str);
-}
-
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->curr = NULL;
@@ -100,7 +95,9 @@ static inline struct rq *rq_of_wrr_rq(struct wrr_rq *wrr_rq)
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
 	struct sched_wrr_entity *wrr_se = &p->wrr;
-	struct wrr_rq *wrr_rq = &rq->wrr;
+	struct wrr_rq *wrr_rq;
+
+	wrr_rq = wrr_rq_of_se(wrr_se);
 
 	WARN_ON(on_wrr_rq(wrr_se));
 	WARN_ON_ONCE(wrr_se->on_list);
@@ -135,7 +132,6 @@ static void dequeue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 
 static void yield_task_wrr(struct rq *rq)
 {
-	requeue_task_wrr(rq, rq->curr, 0);
 }
 
 /*
@@ -159,9 +155,6 @@ pick_next_task_wrr(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	WARN_ON_ONCE(prev || rf);
 
 	if (!sched_wrr_runnable(rq))
-		return NULL;
-
-	if (head->next == head)
 		return NULL;
 
 	wrr_se = list_entry(head->next, struct sched_wrr_entity, run_list);

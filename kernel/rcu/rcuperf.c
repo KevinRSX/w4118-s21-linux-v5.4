@@ -433,7 +433,7 @@ retry:
 			done = true;
 			sp.sched_priority = 0;
 			sched_setscheduler_nocheck(current,
-						   SCHED_NORMAL, &sp);
+						   SCHED_WRR, &sp);
 			pr_alert("%s%s rcu_perf_writer %ld has %d measurements\n",
 				 perf_type, PERF_FLAG, me, MIN_MEAS);
 			if (atomic_inc_return(&n_rcu_perf_writer_finished) >=

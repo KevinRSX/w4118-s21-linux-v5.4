@@ -463,7 +463,7 @@ static void torture_rtmutex_boost(struct torture_random_state *trsp)
 		 */
 		if (!trsp || !(torture_random(trsp) %
 			       (cxt.nrealwriters_stress * factor * 2))) {
-			policy = SCHED_NORMAL;
+			policy = SCHED_WRR;
 			param.sched_priority = 0;
 		} else /* common case, do nothing */
 			return;

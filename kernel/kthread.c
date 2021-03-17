@@ -347,7 +347,7 @@ struct task_struct *__kthread_create_on_node(int (*threadfn)(void *data),
 		 * The kernel thread should not inherit these properties.
 		 */
 		/* TODO: replace SCHED_NORMAL with SCHED_WRR */
-		sched_setscheduler_nocheck(task, SCHED_NORMAL, &param);
+		sched_setscheduler_nocheck(task, SCHED_WRR, &param);
 		set_cpus_allowed_ptr(task, cpu_all_mask);
 	}
 	kfree(create);

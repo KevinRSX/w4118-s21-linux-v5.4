@@ -70,7 +70,7 @@ struct task_struct init_task
 	.prio		= MAX_PRIO - 20,
 	.static_prio	= MAX_PRIO - 20,
 	.normal_prio	= MAX_PRIO - 20,
-	.policy		= SCHED_NORMAL, /* TODO: change to WRR policy */
+	.policy		= SCHED_WRR, /* TODO: change to WRR policy */
 	.cpus_ptr	= &init_task.cpus_mask,
 	.cpus_mask	= CPU_MASK_ALL,
 	.nr_cpus_allowed= NR_CPUS,
@@ -83,9 +83,9 @@ struct task_struct init_task
 		.group_node 	= LIST_HEAD_INIT(init_task.se.group_node),
 	},
 	.wrr		= {
-		.weight		= WRR_DEFAULT_WEIGHT,
-		.time_slice	= WRR_TIMESLICE,
 		.run_list	= LIST_HEAD_INIT(init_task.wrr.run_list),
+		.time_slice	= WRR_TIMESLICE,
+		.weight		= WRR_DEFAULT_WEIGHT,
 	},
 	.rt		= {
 		.run_list	= LIST_HEAD_INIT(init_task.rt.run_list),
