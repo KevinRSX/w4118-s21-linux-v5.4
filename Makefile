@@ -1,12 +1,12 @@
-.PHONY: clean
-default: test fake_test
+.PHONY: default
+default: test check_policy
 
-fake_test: fake_test.c
-	$(CC) $(CFLAGS) -o fake_test fake_test.c
+check_policy: check_policy.c
+	$(CC) $(CFLAGS) -o check_policy check_policy.c
 
 test: test.c
 	$(CC) $(CFLAGS) -o test test.c
 
 .PHONY: clean
 clean:
-	rm test fake_test
+	rm check_policy test

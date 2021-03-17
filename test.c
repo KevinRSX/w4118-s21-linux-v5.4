@@ -16,6 +16,7 @@
 #define __NR_SYSCALL_SET_WRR_WEIGHT 437
 
 #define SCHED_WRR 7
+#define MAX_CHILDREN 1000
 
 struct wrr_info {
 	int num_cpus;
@@ -68,10 +69,11 @@ void set_wrr_weight(int weight)
 		fprintf(stderr, "err: %s\n", strerror(errno));
 }
 
-int born_idle_child()
+int bear_cpu_child()
 {
 	pid_t pid;
 	pid = fork();
+
 	if (!pid) {
 		while (1)
 			;
@@ -79,20 +81,17 @@ int born_idle_child()
 		fprintf(stderr, "fork err: %s", strerror(errno));
 		exit(-1);
 	}
-	// printf("> idle child is borned and running.\n");
 	return pid;
 }
 
-int born_io_child()
+int bear_io_child()
 {
 	pid_t pid;
 	pid = fork();
+
 	if (!pid) {
 		while (1) {
-			char buf[] = "4118";
-			int input;
-			sscanf(buf, "%d", &input);
-			snprintf(buf, 5, "%d", input);
+			printf("My pid: %d\n", getpid());
 		}
 	} else if (pid < 0) {
 		fprintf(stderr, "fork err: %s", strerror(errno));
@@ -115,27 +114,43 @@ void setscheduler(pid_t pid, int policy)
 	}
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+	int nr_children;
+	int (*bear_func)();
+	int children_pids[MAX_CHILDREN]; 
+
+	if (argc != 3) {
+		fprintf(stderr, "usage: %s [c/i] nr_children\n", argv[0]);
+		exit(1);
+	}
 	// printf("# of CPUs: %d/%d\n", get_nprocs(), get_nprocs_conf());
+
+	nr_children = atoi(argv[2]);
+	if (nr_children < 0 || nr_children >= 1000) {
+		fprintf(stderr, "nr_children must be positive and under 1000\n");
+		exit(1);
+	}
+
+	if (argv[1][0] == 'c')
+		bear_func = &bear_cpu_child;
+	else if (argv[1][0] == 'i')
+		bear_func = &bear_io_child;
+	else {
+		fprintf(stderr, "usage: %s [c/i] nr_children\n", argv[0]);
+		exit(1);
+	}
+
+	printf("Before bearing child:\n");
 	get_and_print_wrr_info();
 
-	//Set some processes to use SCHED_WRR
-	int children_num = 220;
-	int children_pids[children_num];
-	for (int i = 0; i < children_num; i++) {
-		children_pids[i] = born_io_child();
+	for (int i = 0; i < nr_children; i++) {
+		children_pids[i] = (*bear_func)();
 		setscheduler(children_pids[i], SCHED_WRR);
 	}
 
-	// get_and_print_wrr_info();
-
-	for (int i = 0; i < children_num; i++) {
-		kill(children_pids[i], SIGKILL);
-		get_and_print_wrr_info();
-	}
-
-	// get_and_print_wrr_info();
+	printf("After bearing child:\n");
+	get_and_print_wrr_info();
 
 	return 0;
 }
