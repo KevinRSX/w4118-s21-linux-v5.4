@@ -290,13 +290,18 @@ static void wrr_periodic_balance(void)
 	if (unlikely(src_rq == target_rq))
 		return;
 	
+	print_wrr_debug("source cpu %d weight %d target cpu %d, weight %d",
+			max_cpu, max_weight, min_cpu, min_weight);
+	
 	/*
 	 * Before doing migration, lock two rqs we are interested in and check
 	 * if the condition still holds.
 	 */
 	local_irq_disable();
 	double_rq_lock(src_rq, target_rq);
-	if (src_rq->nr_running <= 1)
+	print_wrr_debug("locked: max weight %d, min weight %d, nr_running %d",
+			max_weight, min_weight, src_rq->wrr.wrr_nr_running);
+	if (src_rq->wrr.wrr_nr_running <= 1)
 		goto unlock;
 	
 	max_weight = src_rq->wrr.wrr_total_weight;
@@ -304,12 +309,12 @@ static void wrr_periodic_balance(void)
 	if (max_weight <= min_weight)
 		goto unlock;
 	
-	print_wrr_debug("Weight is still preseved");
+	print_wrr_debug("passed weight test: max weight %d, min weight %d",
+			max_weight, min_weight);
 	list_for_each_entry_reverse(tmp_wrr_se, &src_rq->wrr.head, run_list) {
 		tmp_p = wrr_task_of(tmp_wrr_se);
 		if (can_migrate_task(tmp_p, src_rq, target_rq)
 		&& max_weight - 2 * tmp_wrr_se->weight >= min_weight) {
-			print_wrr_debug("To migrate");
 			p = tmp_p;
 			wrr_se = tmp_wrr_se;
 			migrate = true;
