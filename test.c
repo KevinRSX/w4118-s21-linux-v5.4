@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -46,12 +47,12 @@ void print_wrr_info(struct wrr_info buf, FILE *f)
 	fprintf(f, "\n");
 }
 
-void get_and_print_wrr_info(FILE *f)
+void get_and_print_wrr_info(FILE *f, char *filename)
 {
 	int ret;
 	struct wrr_info buf = { MAX_CPUS };
 
-	printf("wrr_info written to test_sample.txt\n");
+	printf("wrr_info written to %s\n", filename);
 	fprintf(f, "wrr_info:\n====================\n");
 	ret = syscall(__NR_SYSCALL_GET_WRR_INFO, &buf);
 	if (ret < 0)
@@ -121,25 +122,38 @@ void setscheduler(pid_t pid, int policy)
 int main(int argc, char **argv)
 {
 	int nr_cpu, nr_io; /* no. of children of CPU/IO-bound processes */
-	int cpu_pids[MAX_CHILDREN]; 
+	int cpu_pids[MAX_CHILDREN];
 	int io_pids[MAX_CHILDREN];
+	int other_pids[MAX_CHILDREN];
+	int cpu_no, is_mixed, mcnt = 0;
 	int iter = 5;
+	char filename[25];
 
-	if (argc != 3) {
-		fprintf(stderr, "usage: %s nr_cpu nr_io\n", argv[0]);
+	if (argc != 4) {
+		fprintf(stderr, "usage: %s nr_cpu nr_io bool_mixed_test\n", argv[0]);
 		exit(1);
 	}
-	// printf("# of CPUs: %d/%d\n", get_nprocs(), get_nprocs_conf());
+
+	cpu_no = get_nprocs();
+	//printf("# of CPUs: %d/%d\n", get_nprocs(), get_nprocs_conf());
 
 	nr_cpu = atoi(argv[1]);
 	if (nr_cpu <= 0 || nr_cpu >= 1000) {
-		fprintf(stderr, "nr_children must be positive and under 1000\n");
+		fprintf(stderr, "nr_children must be positive and under \
+			1000\n");
 		exit(1);
 	}
 
 	nr_io = atoi(argv[2]);
 	if (nr_io <= 0 || nr_io >= 1000) {
-		fprintf(stderr, "nr_children must be positive and under 1000\n");
+		fprintf(stderr, "nr_children must be positive and under \
+			1000\n");
+		exit(1);
+	}
+
+	is_mixed = atoi(argv[3]);
+	if (is_mixed != 0 && is_mixed != 1) {
+		fprintf(stderr, "bool_mixed_test must be either 1 or 0.\n");
 		exit(1);
 	}
 
@@ -148,16 +162,37 @@ int main(int argc, char **argv)
 		cpu_pids[i] = bear_cpu_child(weight);
 		setscheduler(cpu_pids[i], SCHED_WRR);
 	}
-	
+
 	for (int i = 0; i < nr_io; i++) {
 		int weight = i == 0 ? 20 : 10;
 		io_pids[i] = bear_io_child(weight);
 		setscheduler(io_pids[i], SCHED_WRR);
 	}
 
-	FILE *f = fopen("./test_sample.txt", "w");
+	if (is_mixed) {
+		for (int i = 0; i < 1; i++) {
+			int weight = 1;
+			other_pids[mcnt] = bear_cpu_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_OTHER);
+			other_pids[mcnt] = bear_cpu_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_IDLE);
+			//other_pids[mcnt] = bear_cpu_child(weight);
+			//setscheduler(other_pids[mcnt++], SCHED_FIFO);
+
+			weight = 10;
+			other_pids[mcnt] = bear_io_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_OTHER);
+			other_pids[mcnt] = bear_io_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_IDLE);
+			//other_pids[mcnt] = bear_io_child(weight);
+			//setscheduler(other_pids[mcnt++], SCHED_FIFO);
+		}
+	}
+
+	snprintf(filename, 25, "./test_sample_%d_core.txt", cpu_no);
+	FILE *f = fopen(filename, "w");
 	do {
-		get_and_print_wrr_info(f);
+		get_and_print_wrr_info(f, filename);
 		sleep(10);
 	} while (iter--);
 
@@ -169,8 +204,12 @@ int main(int argc, char **argv)
 		kill(io_pids[i], SIGKILL);
 	}
 
+	if (is_mixed) {
+		for (int i = 0; i < mcnt; i++) {
+			kill(other_pids[i], SIGKILL);
+		}
+	}
 	fclose(f);
-	printf("WRR PROGRAM ENDS HERE. SEE RESULTS IN test_sample.txt\n");
-
+	printf("WRR PROGRAM ENDS HERE. SEE RESULTS IN %s\n", filename);
 	return 0;
 }
