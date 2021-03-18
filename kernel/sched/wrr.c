@@ -207,6 +207,7 @@ static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p)
 #ifdef CONFIG_SMP
 static void wrr_periodic_balance(void)
 {
+	print_wrr_debug("wrr_periodic_balance");
 }
 
 static int balance_wrr(struct rq *rq, struct task_struct *p,
@@ -220,6 +221,17 @@ static int balance_wrr(struct rq *rq, struct task_struct *p,
 	//wrr_nr_running = 0 at this moment (IDLE)
 
 	return wrr_newidle_balance(rq, rf) != 0;
+}
+
+static inline bool is_per_cpu_kthread(struct task_struct *p)
+{
+	if (!(p->flags & PF_KTHREAD))
+		return false;
+
+	if (p->nr_cpus_allowed != 1)
+		return false;
+
+	return true;
 }
 
 int can_migrate_task(struct task_struct *p, struct rq *src_rq,
@@ -243,16 +255,13 @@ int can_migrate_task(struct task_struct *p, struct rq *src_rq,
 		return 0;
 #endif
 
-	/* CPU restriction check */
+	if (!cpumask_test_cpu(tar_rq->cpu, p->cpus_ptr))
+		return false;
 
-	/*This code is wrong. To be fixed*/
-	/* if (cpumask_test_cpu(tar_rq->cpu, p->cpus_ptr)){
-	 *	print_wrr_debug("!can_migrate_task: cpumask_test_cpu");
-	 *	return 0;
-	 * }
-	 */
+	if (is_per_cpu_kthread(p))
+		return cpu_online(tar_rq->cpu);
 
-	return 1;
+	return cpu_active(tar_rq->cpu);
 }
 
 int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
@@ -272,8 +281,8 @@ int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 	/*
 	 * Do not pull tasks towards !active CPUs...
 	 */
-	if (!cpu_active(this_cpu))
-		return 0;
+	// if (!cpu_active(this_cpu))
+	// 	return 0;
 
 	/* Finding the target CPU*/
 	for_each_online_cpu(i) {

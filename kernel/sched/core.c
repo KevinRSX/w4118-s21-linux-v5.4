@@ -6600,7 +6600,7 @@ void __init sched_init_smp(void)
 	init_sched_dl_class();
 
 	/* wrr balancer */
-	// init_wrr_balancer(&wrr_balance_timer);
+	init_wrr_balancer(&wrr_balance_timer);
 
 	sched_smp_initialized = true;
 }
