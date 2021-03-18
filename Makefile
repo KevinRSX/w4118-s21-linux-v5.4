@@ -9,4 +9,4 @@ test: test.c
 
 .PHONY: clean
 clean:
-	rm check_policy test
+	rm -rf check_policy test
