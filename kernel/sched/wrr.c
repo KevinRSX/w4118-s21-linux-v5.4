@@ -10,6 +10,9 @@ const struct sched_class sched_wrr_class;
 static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p);
 static void update_curr_wrr(struct rq *rq);
 
+#define print_wrr_debug(fmt, ...) \
+	pr_info("[WRR DEBUG] " pr_fmt(fmt), ##__VA_ARGS__)
+
 /* Remaining initializtion issues: see Google doc */
 
 /*
@@ -185,8 +188,57 @@ static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p)
 static int balance_wrr(struct rq *rq, struct task_struct *p,
 		       struct rq_flags *rf)
 {
-	/* TODO: implement */
-	return -1;
+	struct wrr_rq *wrr_rq = &rq->wrr;
+
+	if (wrr_rq->wrr_nr_running)
+		return 1;
+
+	//wrr_nr_running = 0 at this moment (IDLE)
+
+	return wrr_newidle_balance(rq, rf) != 0;
+}
+
+int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
+{
+	struct wrr_rq *this_wrr_rq = &this_rq->wrr;
+	int this_cpu = this_rq->cpu;
+	struct wrr_rq *wrr_rq_to_be_pulled;
+	struct wrr_rq *wrr_rq;
+	int target_cpu = -1;
+	int pulled_task = 0;
+	int weight, max_weight = 0;
+	int i;
+
+	/*
+	 * Do not pull tasks towards !active CPUs...
+	 */
+	if (!cpu_active(this_cpu))
+		return 0;
+
+	/* Finding the target CPU*/
+	for_each_online_cpu(i) {
+		wrr_rq = &cpu_rq(i)->wrr;
+		if (this_wrr_rq == wrr_rq || wrr_rq->wrr_nr_running < 2)
+			continue;
+
+		rcu_read_lock();
+		weight = wrr_rq->wrr_total_weight;
+		if (weight > max_weight) {
+			max_weight = weight;
+			target_cpu = i;
+			wrr_rq_to_be_pulled = wrr_rq;
+		}
+		rcu_read_unlock();
+	}
+
+	if (target_cpu == -1)
+		return pulled_task;	/* CPUs are not that busy */
+
+	spin_lock(&wrr_rq->wrr_rq_lock);
+	print_wrr_debug("cpu #%d steals from cpu#%d", this_cpu, target_cpu);
+	spin_unlock(&wrr_rq->wrr_rq_lock);
+
+	return pulled_task;
 }
 
 /*
@@ -197,7 +249,7 @@ static int select_task_rq_wrr(struct task_struct *p, int cpu, int sd_flag,
 			      int flags)
 {
 	int i, ret = cpu;
-	int weight, min_weight = __INT_MAX__;
+	int weight, min_weight = INT_MAX;
 	struct rq *rq;
 
 	for_each_online_cpu(i) {
@@ -271,13 +323,22 @@ static void prio_changed_wrr(struct rq *rq, struct task_struct *p, int oldprio)
 static void switched_to_wrr(struct rq *rq, struct task_struct *p)
 {
 	/* We may not need but called with existence unchecked. */
-	// struct sched_wrr_entity *wrr = &p->wrr;
+	struct sched_wrr_entity *wrr = &p->wrr;
 
-	// INIT_LIST_HEAD(&wrr->run_list);
-	// wrr->time_slice = WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
-	// wrr->weight = WRR_DEFAULT_WEIGHT;
-	// wrr->on_rq = 0;
-	// wrr->on_list = 0;
+	wrr->time_slice = WRR_DEFAULT_WEIGHT * WRR_TIMESLICE;
+	wrr->weight = WRR_DEFAULT_WEIGHT;
+
+	if (task_on_rq_queued(p)) {
+		/*
+		 * We were most likely switched from sched_rt, so
+		 * kick off the schedule if running, otherwise just see
+		 * if we can still preempt the current task.
+		 */
+		if (rq->curr == p)
+			resched_curr(rq);
+		else
+			check_preempt_curr(rq, p, 0);
+	}
 }
 
 /*
@@ -313,6 +374,11 @@ static void update_curr_wrr(struct rq *rq)
 	cgroup_account_cputime(curr, delta_exec);
 
 	/* The remaining code in update_curr_rt deal with rt_rq statistics */
+}
+
+static inline int on_null_domain(struct rq *rq)
+{
+	return unlikely(!rcu_dereference_sched(rq->sd));
 }
 
 const struct sched_class sched_wrr_class = {
