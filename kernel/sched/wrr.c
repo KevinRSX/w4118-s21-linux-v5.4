@@ -225,26 +225,32 @@ static int balance_wrr(struct rq *rq, struct task_struct *p,
 int can_migrate_task(struct task_struct *p, struct rq *src_rq,
 		     struct rq *tar_rq)
 {
-	/* Task running check */
-	if (task_running(src_rq, p)){
-		print_wrr_debug("!can_migrate_task: task_running");
-		return 0;
-	}
 #ifndef CONFIG_SMP
-	if (wrr_rq->curr == p)
-		return 0;
+	struct wrr_rq *src_wrr_rq = &src_rq->wrr;
 #endif
-
-	/* CPU restriction check */
-	if (cpumask_test_cpu(tar_rq->cpu, p->cpus_ptr)){
-		print_wrr_debug("!can_migrate_task: cpumask_test_cpu");
-		return 0;
-	}
-
 	if (!p) {
 		print_wrr_debug("p is null???");
 		return 0;
 	}
+
+	/* Task running check */
+	if (task_running(src_rq, p)) {
+		print_wrr_debug("cant_migrate_task: task_running");
+		return 0;
+	}
+#ifndef CONFIG_SMP
+	if (src_wrr_rq->curr == p)
+		return 0;
+#endif
+
+	/* CPU restriction check */
+
+	/*This code is wrong. To be fixed*/
+	/* if (cpumask_test_cpu(tar_rq->cpu, p->cpus_ptr)){
+	 *	print_wrr_debug("!can_migrate_task: cpumask_test_cpu");
+	 *	return 0;
+	 * }
+	 */
 
 	return 1;
 }
@@ -286,9 +292,8 @@ int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 		rcu_read_unlock();
 	}
 
-	if (target_cpu == -1){
+	if (target_cpu == -1)
 		return pulled_task; /* CPUs are not heavy */
-	}
 
 	double_lock_balance(this_rq, rq_to_be_pulled);
 
@@ -303,12 +308,15 @@ int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 				 run_list);
 	p = wrr_task_of(wrr_se);
 
-	if (!can_migrate_task(p, this_rq, rq_to_be_pulled)) {
-		print_wrr_debug("!can_migrate_task.");
+	if (!can_migrate_task(p, rq_to_be_pulled, this_rq))
 		goto out;
-	}
 
-	print_wrr_debug("cpu #%d steals from cpu#%d", this_cpu, target_cpu);
+	/* Pull to this_rq */
+	deactivate_task(rq_to_be_pulled, p, 0);
+	set_task_cpu(p, this_cpu);
+	activate_task(this_rq, p, 0);
+
+	print_wrr_debug("cpu #%d robbed cpu#%d", this_cpu, target_cpu);
 out:
 	double_unlock_balance(this_rq, rq_to_be_pulled);
 	return pulled_task;
