@@ -34,10 +34,13 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 #ifdef CONFIG_SMP
 
 struct hrtimer wrr_balance_timer;
+DEFINE_SPINLOCK(wrr_periodic_balance_lock);
 static enum hrtimer_restart sched_wrr_periodic_timer(struct hrtimer *timer)
 {
 	wrr_periodic_balance();
+	spin_lock(&wrr_periodic_balance_lock);
 	hrtimer_forward_now(timer, ns_to_ktime(WRR_BALANCE_PERIOD));
+	spin_unlock(&wrr_periodic_balance_lock);
 	return HRTIMER_RESTART;
 }
 
@@ -45,6 +48,7 @@ void init_wrr_balancer(struct hrtimer *timer)
 {
 	hrtimer_init(timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL_HARD);
 	timer->function = sched_wrr_periodic_timer;
+	spin_lock_init(&wrr_periodic_balance_lock);
 	hrtimer_start(timer, ns_to_ktime(WRR_BALANCE_PERIOD),
 			HRTIMER_MODE_REL_HARD);
 }
