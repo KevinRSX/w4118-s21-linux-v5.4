@@ -50,12 +50,6 @@ void init_wrr_balancer(struct hrtimer *timer)
 }
 #endif /* CONFIG_SMP */
 
-/*
- * TODO (Andreas):
- * Call this when you see fit and update the fields afterward when needed, e.g.
- * on_rq should be 1 after it is enqueued, though I don't know if this is really
- * needed when I copied code from rt.c
- */
 void init_wrr_entity(struct sched_wrr_entity *wrr)
 {
 	INIT_LIST_HEAD(&wrr->run_list);
@@ -205,11 +199,6 @@ static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p)
 
 
 #ifdef CONFIG_SMP
-static void wrr_periodic_balance(void)
-{
-	print_wrr_debug("wrr_periodic_balance");
-}
-
 static int balance_wrr(struct rq *rq, struct task_struct *p,
 		       struct rq_flags *rf)
 {
@@ -264,6 +253,40 @@ int can_migrate_task(struct task_struct *p, struct rq *src_rq,
 	return cpu_active(tar_rq->cpu);
 }
 
+static void wrr_periodic_balance(void)
+{
+	int i;
+	int min_cpu = 0, max_cpu = 0;
+	int min_weight = INT_MAX, max_weight = 0;
+	struct rq *src_rq, *target_rq, *tmp_rq; /* source->max, target->min */
+	struct wrr_rq *tmp_wrr_rq;
+
+	print_wrr_debug("wrr_periodic_balance");
+	src_rq = target_rq = NULL;
+	for_each_online_cpu(i) {
+		tmp_rq = cpu_rq(i);
+
+		rcu_read_lock();
+		tmp_wrr_rq = &tmp_rq->wrr;
+		if (tmp_wrr_rq->wrr_total_weight > max_weight) {
+			max_cpu = i;
+			max_weight = tmp_wrr_rq->wrr_total_weight;
+			src_rq = tmp_rq;
+		} else if (tmp_wrr_rq->wrr_total_weight < min_weight) {
+			min_cpu = i;
+			min_weight = tmp_wrr_rq->wrr_total_weight;
+			target_rq = tmp_rq;
+		}
+		rcu_read_unlock();
+	}
+
+	if (unlikely(!src_rq || !target_rq))
+		return;
+
+	print_wrr_debug("source cpu %d weight %d target cpu %d, weight %d",
+			max_cpu, max_weight, min_cpu, min_weight);
+}
+
 int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 {
 	struct wrr_rq *this_wrr_rq = &this_rq->wrr;
@@ -277,12 +300,6 @@ int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 	int pulled_task = 0;	/*Quite useless*/
 	int weight, max_weight = 0;
 	int i;
-
-	/*
-	 * Do not pull tasks towards !active CPUs...
-	 */
-	// if (!cpu_active(this_cpu))
-	// 	return 0;
 
 	/* Finding the target CPU*/
 	for_each_online_cpu(i) {
