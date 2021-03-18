@@ -109,10 +109,16 @@ int bear_io_child(int weight)
 void setscheduler(pid_t pid, int policy)
 {
 	/* The param is for Non-RT policies */
-	struct sched_param param = { 0 };
+	struct sched_param non_rt_param = { 0 };
+	struct sched_param rt_param = { 1 };
 
 	int ret;
-	ret = sched_setscheduler(pid, policy, &param);
+	if (policy == SCHED_RR || policy == SCHED_FIFO) {
+		ret = sched_setscheduler(pid, policy, &rt_param);
+	} else {
+		ret = sched_setscheduler(pid, policy, &non_rt_param);
+	}
+
 	if (ret < 0) {
 		fprintf(stderr, "err: %s\n", strerror(errno));
 		exit(ret);
@@ -172,20 +178,25 @@ int main(int argc, char **argv)
 	if (is_mixed) {
 		for (int i = 0; i < 1; i++) {
 			int weight = 1;
-			other_pids[mcnt] = bear_cpu_child(weight);
-			setscheduler(other_pids[mcnt++], SCHED_OTHER);
-			other_pids[mcnt] = bear_cpu_child(weight);
-			setscheduler(other_pids[mcnt++], SCHED_IDLE);
+			//other_pids[mcnt] = bear_cpu_child(weight);
+			//setscheduler(other_pids[mcnt++], SCHED_OTHER);
+			//other_pids[mcnt] = bear_cpu_child(weight);
+			//setscheduler(other_pids[mcnt++], SCHED_IDLE);
 			//other_pids[mcnt] = bear_cpu_child(weight);
 			//setscheduler(other_pids[mcnt++], SCHED_FIFO);
+			other_pids[mcnt] = bear_cpu_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_RR);
 
 			weight = 10;
-			other_pids[mcnt] = bear_io_child(weight);
-			setscheduler(other_pids[mcnt++], SCHED_OTHER);
-			other_pids[mcnt] = bear_io_child(weight);
-			setscheduler(other_pids[mcnt++], SCHED_IDLE);
+			//other_pids[mcnt] = bear_io_child(weight);
+			//setscheduler(other_pids[mcnt++], SCHED_OTHER);
+			//other_pids[mcnt] = bear_io_child(weight);
+			//setscheduler(other_pids[mcnt++], SCHED_IDLE);
 			//other_pids[mcnt] = bear_io_child(weight);
 			//setscheduler(other_pids[mcnt++], SCHED_FIFO);
+			other_pids[mcnt] = bear_cpu_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_RR);
+
 		}
 	}
 
