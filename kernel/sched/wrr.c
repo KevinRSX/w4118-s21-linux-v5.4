@@ -255,14 +255,17 @@ int can_migrate_task(struct task_struct *p, struct rq *src_rq,
 
 static void wrr_periodic_balance(void)
 {
-	int i;
+	int i, weight;
 	int min_cpu = 0, max_cpu = 0;
 	int min_weight = INT_MAX, max_weight = 0;
-	struct rq *src_rq, *target_rq, *tmp_rq; /* source->max, target->min */
-	struct wrr_rq *tmp_wrr_rq;
+	struct task_struct *p;
+	struct rq *source_rq, *target_rq, *tmp_rq; /* source->max, target->min */
+	struct sched_wrr_entity *wrr_se;
+	struct wrr_rq *tmp_wrr_rq, *source_wrr_rq;
 
 	print_wrr_debug("wrr_periodic_balance");
-	src_rq = target_rq = NULL;
+	source_rq = target_rq = NULL;
+	p = NULL;
 	for_each_online_cpu(i) {
 		tmp_rq = cpu_rq(i);
 
@@ -271,7 +274,7 @@ static void wrr_periodic_balance(void)
 		if (tmp_wrr_rq->wrr_total_weight > max_weight) {
 			max_cpu = i;
 			max_weight = tmp_wrr_rq->wrr_total_weight;
-			src_rq = tmp_rq;
+			source_rq = tmp_rq;
 		} else if (tmp_wrr_rq->wrr_total_weight < min_weight) {
 			min_cpu = i;
 			min_weight = tmp_wrr_rq->wrr_total_weight;
@@ -280,11 +283,35 @@ static void wrr_periodic_balance(void)
 		rcu_read_unlock();
 	}
 
-	if (unlikely(!src_rq || !target_rq))
+	if (unlikely(!source_rq || !target_rq))
 		return;
 
 	print_wrr_debug("source cpu %d weight %d target cpu %d, weight %d",
 			max_cpu, max_weight, min_cpu, min_weight);
+
+	double_lock_balance(source_rq, target_rq);
+
+	source_wrr_rq = &source_rq->wrr;
+
+	if (source_wrr_rq->wrr_nr_running <= 1)
+		goto out;
+	
+	list_for_each_entry_reverse(wrr_se, &source_wrr_rq->head, run_list) {
+		weight = wrr_se->weight;
+		if (min_weight + 2 * weight < max_weight) {
+			p = wrr_task_of(wrr_se);
+			break;
+		}
+	}
+
+	if (!p || !can_migrate_task(p, source_rq, target_rq))
+		goto out;
+
+	// migrate p from source_rq to target_rq
+	print_wrr_debug("ready to migrate with weight %d", weight);
+out:
+	double_unlock_balance(source_rq, target_rq);
+	return;
 }
 
 int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
