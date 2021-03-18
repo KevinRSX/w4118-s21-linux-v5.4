@@ -14,13 +14,8 @@ static void wrr_periodic_balance(void);
 #define print_wrr_debug(fmt, ...) \
 	pr_info("[WRR DEBUG] " pr_fmt(fmt), ##__VA_ARGS__)
 
-/* Remaining initializtion issues: see Google doc */
 
-/*
- * Called by sched_init. Although rq lock is NOT held, we'd better not allocate
- * memory in this function
- */
-
+/* Called by sched_init. */
 void init_wrr_rq(struct wrr_rq *wrr_rq)
 {
 	wrr_rq->curr = NULL;
@@ -32,7 +27,14 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 }
 
 #ifdef CONFIG_SMP
-
+/*
+ * hrtimer is used to set up a periodic timer callback, in our case the period
+ * is 500ms.
+ *
+ * It is unclear whether we should hold a lock when forwarding hrtimer, while
+ * whether holding it or not seem to work fine. In this case, we should follow
+ * its use in rt.c and hold a lock.
+ */
 struct hrtimer wrr_balance_timer;
 DEFINE_SPINLOCK(wrr_periodic_balance_lock);
 static enum hrtimer_restart sched_wrr_periodic_timer(struct hrtimer *timer)
@@ -54,6 +56,10 @@ void init_wrr_balancer(struct hrtimer *timer)
 }
 #endif /* CONFIG_SMP */
 
+/*
+ * Called in sched_fork(). Every task, whatever its policy is, must initialize
+ * its wrr entity so it can be used once the policy changes
+ */
 void init_wrr_entity(struct sched_wrr_entity *wrr)
 {
 	INIT_LIST_HEAD(&wrr->run_list);
@@ -84,7 +90,7 @@ static void requeue_task_wrr(struct rq *rq, struct task_struct *p, int head)
 	struct list_head *wrr_head = &wrr_rq->head;
 
 	if (!on_wrr_rq(wrr_se))
-		return; /* should enqueue if not on wrr_rq */
+		return;
 
 	if (head)
 		list_move(&wrr_se->run_list, wrr_head);
@@ -111,7 +117,7 @@ static inline struct rq *rq_of_wrr_rq(struct wrr_rq *wrr_rq)
 	return container_of(wrr_rq, struct rq, wrr);
 }
 
-/* below are class-specific necessary scheduling functions */
+/* Below are class-specific necessary scheduling functions */
 
 static void enqueue_task_wrr(struct rq *rq, struct task_struct *p, int flags)
 {
@@ -263,13 +269,11 @@ static void wrr_periodic_balance(void)
 	int min_cpu = 0, max_cpu = 0;
 	int min_weight = INT_MAX, max_weight = 0;
 	bool migrate = false;
-	// unsigned long flags;
 	struct rq *src_rq, *target_rq, *tmp_rq; /* source->max, target->min */
 	struct wrr_rq *tmp_wrr_rq;
 	struct task_struct *tmp_p, *p; /* iterator and actual task */
 	struct sched_wrr_entity *tmp_wrr_se, *wrr_se;
 
-	print_wrr_debug("wrr_periodic_balance");
 	src_rq = target_rq = NULL;
 	for_each_online_cpu(i) {
 		tmp_rq = cpu_rq(i);
@@ -290,31 +294,25 @@ static void wrr_periodic_balance(void)
 
 	if (unlikely(!src_rq || !target_rq))
 		return;
-	
+
 	if (unlikely(src_rq == target_rq))
 		return;
-	
-	print_wrr_debug("source cpu %d weight %d target cpu %d, weight %d",
-			max_cpu, max_weight, min_cpu, min_weight);
-	
+
+
 	/*
 	 * Before doing migration, lock two rqs we are interested in and check
 	 * if the condition still holds.
 	 */
 	local_irq_disable();
 	double_rq_lock(src_rq, target_rq);
-	print_wrr_debug("locked: max weight %d, min weight %d, nr_running %d",
-			max_weight, min_weight, src_rq->wrr.wrr_nr_running);
 	if (src_rq->wrr.wrr_nr_running <= 1)
 		goto unlock;
-	
+
 	max_weight = src_rq->wrr.wrr_total_weight;
 	min_weight = target_rq->wrr.wrr_total_weight;
 	if (max_weight <= min_weight)
 		goto unlock;
-	
-	print_wrr_debug("passed weight test: max weight %d, min weight %d",
-			max_weight, min_weight);
+
 	list_for_each_entry_reverse(tmp_wrr_se, &src_rq->wrr.head, run_list) {
 		tmp_p = wrr_task_of(tmp_wrr_se);
 		if (can_migrate_task(tmp_p, src_rq, target_rq)
@@ -328,7 +326,7 @@ static void wrr_periodic_balance(void)
 
 	if (!migrate)
 		goto unlock;
-	
+
 	deactivate_task(src_rq, p, 0);
 	set_task_cpu(p, target_rq->cpu);
 	activate_task(target_rq, p, 0);
@@ -349,7 +347,7 @@ int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 	struct task_struct *p;
 	int this_cpu = this_rq->cpu;
 	int target_cpu = -1;
-	int pulled_task = 0;	/*Quite useless*/
+	int pulled_task = 0;	/* Quite useless */
 	int weight, max_weight = 0;
 	int i;
 
@@ -377,10 +375,8 @@ int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 
 	wrr_rq = &rq_to_be_pulled->wrr;
 
-	if (wrr_rq->wrr_nr_running <= 1) {
-		// print_wrr_debug("275: CPU is poor.");
+	if (wrr_rq->wrr_nr_running <= 1)
 		goto out;
-	}
 
 	wrr_se = list_last_entry(&wrr_rq->head, struct sched_wrr_entity,
 				 run_list);
@@ -394,7 +390,6 @@ int wrr_newidle_balance(struct rq *this_rq, struct rq_flags *rf)
 	set_task_cpu(p, this_cpu);
 	activate_task(this_rq, p, 0);
 
-	print_wrr_debug("cpu #%d robbed cpu#%d", this_cpu, target_cpu);
 out:
 	double_unlock_balance(this_rq, rq_to_be_pulled);
 	return pulled_task;
