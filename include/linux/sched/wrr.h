@@ -20,4 +20,6 @@ struct wrr_info {
 #define WRR_DEFAULT_WEIGHT	10
 #define WRR_MAX_WEIGHT		20
 
+#define WRR_BALANCE_PERIOD	500 * 1000 * 1000 /* in nanoseconds */
+
 #endif /* LINUX_SCHED_WRR_H_ */

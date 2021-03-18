@@ -338,6 +338,10 @@ struct cfs_rq;
 struct wrr_rq;
 struct rt_rq;
 
+#ifdef CONFIG_SMP
+extern struct hrtimer wrr_balance_timer;
+#endif /* CONFIG_SMP */
+
 extern struct list_head task_groups;
 
 struct cfs_bandwidth {
@@ -2234,6 +2238,9 @@ extern void init_rt_rq(struct rt_rq *rt_rq);
 extern void init_dl_rq(struct dl_rq *dl_rq);
 
 extern void init_wrr_entity(struct sched_wrr_entity *wrr);
+#ifdef CONFIG_SMP
+extern void init_wrr_balancer(struct hrtimer *timer);
+#endif /* CONFIG_SMP */
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);

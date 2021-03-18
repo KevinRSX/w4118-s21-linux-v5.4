@@ -9,6 +9,7 @@
 const struct sched_class sched_wrr_class;
 static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p);
 static void update_curr_wrr(struct rq *rq);
+static void wrr_periodic_balance(void);
 
 #define print_wrr_debug(fmt, ...) \
 	pr_info("[WRR DEBUG] " pr_fmt(fmt), ##__VA_ARGS__)
@@ -29,6 +30,25 @@ void init_wrr_rq(struct wrr_rq *wrr_rq)
 	wrr_rq->wrr_nr_running = 0;
 	wrr_rq->wrr_total_weight = 0;
 }
+
+#ifdef CONFIG_SMP
+
+struct hrtimer wrr_balance_timer;
+static enum hrtimer_restart sched_wrr_periodic_timer(struct hrtimer *timer)
+{
+	wrr_periodic_balance();
+	hrtimer_forward_now(timer, ns_to_ktime(WRR_BALANCE_PERIOD));
+	return HRTIMER_RESTART;
+}
+
+void init_wrr_balancer(struct hrtimer *timer)
+{
+	hrtimer_init(timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL_HARD);
+	timer->function = sched_wrr_periodic_timer;
+	hrtimer_start(timer, ns_to_ktime(WRR_BALANCE_PERIOD),
+			HRTIMER_MODE_REL_HARD);
+}
+#endif /* CONFIG_SMP */
 
 /*
  * TODO (Andreas):
@@ -185,6 +205,10 @@ static inline void set_next_task_wrr(struct rq *rq, struct task_struct *p)
 
 
 #ifdef CONFIG_SMP
+static void wrr_periodic_balance(void)
+{
+}
+
 static int balance_wrr(struct rq *rq, struct task_struct *p,
 		       struct rq_flags *rf)
 {
