@@ -18,7 +18,7 @@
 #define __NR_SYSCALL_SET_WRR_WEIGHT 437
 
 #define SCHED_WRR 7
-#define MAX_CHILDREN 1000
+#define NR_CHILDREN 5
 
 struct wrr_info {
 	int num_cpus;
@@ -36,7 +36,7 @@ void set_wrr_weight(int weight)
 		fprintf(stderr, "err: %s\n", strerror(errno));
 }
 
-int counter[2] = { 0 };
+int counters[NR_CHILDREN];
 
 /*wrapper of the sched_setscheduler*/
 void setscheduler(pid_t pid, int policy)
@@ -58,6 +58,11 @@ void setscheduler(pid_t pid, int policy)
 	}
 }
 
+void handle_sigterm(int sig)
+{
+	printf("%d\n", counters[0]);
+}
+
 int bear_cpu_child(int weight, int index)
 {
 	pid_t pid;
@@ -66,14 +71,14 @@ int bear_cpu_child(int weight, int index)
 
 	if (!pid) {
 		set_wrr_weight(weight);
+		signal(SIGTERM, handle_sigterm);
 		while (1) {
 			t++;
 			if (t % 2000 == 0) {
-				counter[index]++;
+				counters[index]++;
+			//	printf("%d\n", counters[index]);
 			}
 			if (t == 10000) {
-				//printf("pid: %d, weight: %d, counter: %d\n",
-				//       getpid(), weight, counter);
 				t = 0;
 			}
 		}
@@ -86,49 +91,24 @@ int bear_cpu_child(int weight, int index)
 
 int main(int argc, char **argv)
 {
-	int nr_cpu, iter = 1;
-	int *weight;
-	int cpu_pids[MAX_CHILDREN];
-	//counter = (int *) malloc(2 * sizeof(int));
-	//counter[0] = counter[1] = 0;
-
-
-	if (argc != 2) {
-		fprintf(stderr, "usage: %s nr_cpu\n", argv[0]);
-		exit(1);
-	}
-
-	nr_cpu = atoi(argv[1]);
-	if (nr_cpu <= 0 || nr_cpu >= 1000) {
-		fprintf(stderr, "nr_children must be positive and under \
-			1000\n");
-		exit(1);
-	}
-
-	weight = (int*) malloc(nr_cpu * sizeof(int));
-	for (int i = 0; i < nr_cpu; i++) {
-		scanf("%d", weight + i);
-		counter[i] = 0;
-	}
+	int nr_cpu = 1, iter = 0;
+	int weight[] = {1, 5, 10, 15, 20};
+	int cpu_pids[5];
 
 	for (int i = 0; i < nr_cpu; i++) {
+		counters[i] = 0;
 		cpu_pids[i] = bear_cpu_child(weight[i], i);
 		setscheduler(cpu_pids[i], SCHED_WRR);
 	}
 
 	do {
-		/*
-		for (int i = 0; i < nr_cpu; i++) {
-			printf("process %d: weight %d, counter %d\n", cpu_pids[i], weight[i], counter[i]);
-		}
-		*/
 		sleep(5);
 	} while (iter--);
 
-	printf("weight %d: counter %d\n weight %d: counter %d\n", weight[0],
-	       counter[0], weight[1], counter[1]);
 
 	for (int i = 0; i < nr_cpu; i++) {
+		kill(cpu_pids[i], SIGTERM);
+		sleep(1);
 		kill(cpu_pids[i], SIGKILL);
 	}
 	return 0;
