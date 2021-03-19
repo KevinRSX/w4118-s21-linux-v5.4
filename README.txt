@@ -7,7 +7,7 @@ complex.c -- PART 3
 To build, simply
 $ make
 Usage (see each part for explanation):
-$ sudo ./test nr_cpu_child nr_io_child is_mixed_testing
+$ sudo ./test nr_cpu_child nr_io_child
 $ sudo ./test_tick child_weight
 $ sudo ./complex
 
