@@ -8,7 +8,7 @@ To build, simply
 $ make
 Usage (see each part for explanation):
 $ sudo ./test nr_cpu_child nr_io_child
-$ sudo ./test_tick child_weight
+$ sudo ./test_tick child_weight bool_is_mixed
 $ sudo ./complex
 
 PART 1: Scheduler performance and load balancing
