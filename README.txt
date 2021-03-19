@@ -1,13 +1,15 @@
 Test files:
 ----------
-test.c
-test_tick.c
+test.c -- PART 1
+test_tick.c -- PART 2
+complex.c -- PART 3
 
 To build, simply
 $ make
-Usage:
+Usage (see each part for explanation):
 $ sudo ./test nr_cpu_child nr_io_child is_mixed_testing
-$ sudo ./test test_tick.c child_weight
+$ sudo ./test_tick child_weight
+$ sudo ./complex
 
 PART 1: Scheduler performance and load balancing
 The test program spawns nr_cpu_child CPU-bound processes and nr_io_child
@@ -39,6 +41,10 @@ There are two processes created for I/O bound and CPU bound each, with
 SCHED_WRR class, and one process created for I/O bound and CPU bound each,
 for other scheduling classes. Please refer to test_sample_2_core_mixed.txt
 for further details.
+
+It is worth noting that the load balancing works better when there are more
+processes one each core, so that more proceses _may_ be eligible to be moved.
+From our result, the load is normally balance among cores.
 
 
 A copy of test_sample_2_core.txt in case it is overwritten
@@ -118,8 +124,14 @@ successfully determine the maximum time a process can hold the CPU.
 
 
 PART 3: Complex programs
-Most processes/threads in our system is using SCHED_WRR, whose policy id is 7.
-This can be get by
+A complex program named complex.c recursively prints all the fibonacci numbers.
+Please refer to the above for usage. This program is both computationally and
+I/O-expensive. The scheduler works fine in this context.
+
+Apart from programs we write, most processes/threads in our system are using
+SCHED_WRR, whose policy id is 7.
+
+This can be get by:
 $ ps axo pid, comm, sched
 The processes below are either CPU-bound and I/O-bound. Therefore, our system
 performs normally with complex programs.
