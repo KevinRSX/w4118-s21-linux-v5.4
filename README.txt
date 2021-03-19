@@ -1,10 +1,15 @@
 Test files:
 ----------
+test.c
+test_tick.c
+
 To build, simply
 $ make
 Usage:
 $ sudo ./test nr_cpu_child nr_io_child is_mixed_testing
+$ sudo ./test test_tick.c child_weight
 
+PART 1: Scheduler performance and load balancing
 The test program spawns nr_cpu_child CPU-bound processes and nr_io_child
 IO-bound processes. Since WRR policy is not efficient, we give low weights
 to most processes. It is strongly suggested that the grader forks fewer than 5
@@ -18,9 +23,7 @@ weight=20. The rest will have weight=10.
 The test program will run for one minute, prints the results of get_wrr_info.
 The results will be printed to a file called test_sample_N_cores.txt, which is at the
 root directory of the test branch with N representing the number of
-processors configured in testing. After that, it will write the total
-time of running (mostly state=RUNNING) of all children to the bottom of
-test_sample.txt and kill all children it spawned. Therefore, if you want to
+processors configured in testing. Therefore, if you want to
 reproduce our experiment, do not manually kill the children. Just wait for one
 minute and it will put all the results in test_sample.txt.
 
@@ -38,7 +41,7 @@ for other scheduling classes. Please refer to test_sample_2_core_mixed.txt
 for further details.
 
 
-A copy of test_sample.txt in case it is overwritten
+A copy of test_sample_2_core.txt in case it is overwritten
 -----------------------------------------------------------
 wrr_info:
 ====================
@@ -78,8 +81,48 @@ nr_running     	3      	3
 total_weight   	25     	21     
 -----------------------------------------------------------
 
+PART 2: Impact of weight
+Impact of weight is tested by test_tick.c. Please refer the above for usage.
+According to the user defined weight, our system runs two processes, one process
+is a simple while (1) loop, whose weight is set to 1; the other's weight is set
+to child_weight, ranging from 1 to 20. The latter process will increase a
+counter when loop count is the integer multiple of 10000. Both child processes
+will run for 15 seconds and will be killed by the parent. We provide a sample
+test result in weight_test.txt. It is copied right below and we shall explain it
+here:
+-------------------
+set_wrr_weight: 1
+set_wrr_weight: 1
+377488
+set_wrr_weight: 5
+set_wrr_weight: 1
+635415
+set_wrr_weight: 20
+set_wrr_weight: 1
+727670
+-------------------
 
+We run the program with:
+$ ./test_tick 1
+$ ./test_tick 5
+$ ./test_tick 20
+sequentially. One may use a shell script to run. The first run spawns 2
+processes whose weights are both 1. It can be inferred that each share 50% of
+CPU time, which is approximately 370000 * 2 = 740000, measured by the test
+program's counter. In the second run, the process whose weight is 5 takes 630000
+of the CPU time, it can be calculated that the process whose weight is 1 takes
+110000. The proportion is approximately 1:5~1:6. In the third run, two processes
+take around 720000 and 30000 CPU time respectively and the proportion is
+approximately 1:20~1:25. This result shows that the weight of WRR policy
+successfully determine the maximum time a process can hold the CPU.
+
+
+PART 3: Complex programs
 Most processes/threads in our system is using SCHED_WRR, whose policy id is 7.
+This can be get by
+$ ps axo pid, comm, sched
+The processes below are either CPU-bound and I/O-bound. Therefore, our system
+performs normally with complex programs.
 -----------------------------------------------------------
   PID COMMAND         SCH
     1 systemd           7
