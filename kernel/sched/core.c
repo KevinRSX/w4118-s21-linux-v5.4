@@ -5947,8 +5947,6 @@ SYSCALL_DEFINE1(get_wrr_info, struct wrr_info __user *, buf)
 	struct rq *rq;
 	struct wrr_info kbuf;
 
-	pr_info("%s", "HELL YES Call get_wrr_info");
-
 	kbuf.num_cpus = num_cpus;
 
 	for_each_online_cpu(i) {
@@ -5978,8 +5976,6 @@ SYSCALL_DEFINE1(set_wrr_weight, int, weight)
 	struct wrr_rq *wrr_rq;
 	int prev_weight, delta_weight;
 
-	pr_info("%s", "Call set_wrr_weight");
-
 	if (weight < 1 || weight > WRR_MAX_WEIGHT)
 		return -EINVAL;
 
@@ -5993,7 +5989,8 @@ SYSCALL_DEFINE1(set_wrr_weight, int, weight)
 	prev_weight = wrr_se->weight;
 	delta_weight = weight - prev_weight;
 	wrr_se->weight = weight;
-	wrr_rq->wrr_total_weight += delta_weight;
+	if (wrr_se->on_list)
+		wrr_rq->wrr_total_weight += delta_weight;
 	spin_unlock_irq(&wrr_rq->wrr_rq_lock);
 	rcu_read_unlock();
 
