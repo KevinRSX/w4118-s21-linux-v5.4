@@ -3,7 +3,7 @@ Test files:
 To build, simply
 $ make
 Usage:
-$ sudo ./test nr_cpu_child nr_io_child
+$ sudo ./test nr_cpu_child nr_io_child is_mixed_testing
 
 The test program spawns nr_cpu_child CPU-bound processes and nr_io_child
 IO-bound processes. Since WRR policy is not efficient, we give low weights
@@ -16,12 +16,26 @@ will have weight=1. For I/O-bound processes, only the first process will have
 weight=20. The rest will have weight=10.
 
 The test program will run for one minute, prints the results of get_wrr_info.
-The results will be printed to a file called test_sample.txt, which is at the
-root directory of the test branch. After that, it will write the total
+The results will be printed to a file called test_sample_N_cores.txt, which is at the
+root directory of the test branch with N representing the number of
+processors configured in testing. After that, it will write the total
 time of running (mostly state=RUNNING) of all children to the bottom of
 test_sample.txt and kill all children it spawned. Therefore, if you want to
 reproduce our experiment, do not manually kill the children. Just wait for one
 minute and it will put all the results in test_sample.txt.
+
+Testing setting:
+1 core: 2 cpu, 2 I/O
+2 cores: 5 cpu, 5 I/O
+4 cores: 50 cpu, 100 I/O
+
+The test program also support testing with other scheduling classes like
+SCHED_OTHER, SCHED_FIFO, SCHED_IDLE, SCHED_RR. We have provided a sample
+output tested with the four scheduling classes above in a duel-core config.
+There are two processes created for I/O bound and CPU bound each, with
+SCHED_WRR class, and one process created for I/O bound and CPU bound each,
+for other scheduling classes. Please refer to test_sample_2_core_mixed.txt
+for further details.
 
 
 A copy of test_sample.txt in case it is overwritten

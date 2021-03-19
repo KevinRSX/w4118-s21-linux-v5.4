@@ -1,0 +1,319 @@
+wrr_info:
+====================
+Total # of CPUs: 2
+CPU No.        	0      	1      
+nr_running     	14     	13     
+total_weight   	140    	125    
+wrr_info:
+====================
+Total # of CPUs: 2
+CPU No.        	0      	1      
+nr_running     	4      	3      
+total_weight   	35     	21     
+wrr_info:
+====================
+Total # of CPUs: 2
+CPU No.        	0      	1      
+nr_running     	7      	7      
+total_weight   	70     	56     
+wrr_info:
+====================
+Total # of CPUs: 2
+CPU No.        	0      	1      
+nr_running     	4      	7      
+total_weight   	40     	66     
+wrr_info:
+====================
+Total # of CPUs: 2
+CPU No.        	0      	1      
+nr_running     	6      	5      
+total_weight   	55     	41     
+wrr_info:
+====================
+Total # of CPUs: 2
+CPU No.        	0      	1      
+nr_running     	6      	4      
+total_weight   	55     	31     
+
+ps axo pid,comm,sched:
+  PID COMMAND         SCH
+    1 systemd           7
+    2 kthreadd          7
+    3 rcu_gp            7
+    4 rcu_par_gp        7
+    5 kworker/0:0-eve   7
+    6 kworker/0:0H-kb   7
+    8 mm_percpu_wq      7
+    9 ksoftirqd/0       7
+   10 rcu_sched         7
+   11 migration/0       1
+   12 cpuhp/0           7
+   13 cpuhp/1           7
+   14 migration/1       1
+   15 ksoftirqd/1       7
+   17 kworker/1:0H-kb   7
+   18 kdevtmpfs         7
+   19 netns             7
+   20 kauditd           7
+   25 oom_reaper        7
+   26 writeback         7
+   27 kcompactd0        7
+   73 kblockd           7
+   74 ata_sff           7
+   75 md                7
+   76 edac-poller       7
+   77 rpciod            7
+   78 kworker/u129:0    7
+   79 xprtiod           7
+   80 cfg80211          7
+   81 kswapd0           7
+   82 nfsiod            7
+   85 acpi_thermal_pm   7
+   86 irq/16-vmwgfx     1
+   87 ttm_swap          7
+   88 scsi_eh_0         7
+   89 scsi_tmf_0        7
+   90 scsi_eh_1         7
+   91 scsi_tmf_1        7
+   92 scsi_eh_2         7
+   93 scsi_tmf_2        7
+   94 scsi_eh_3         7
+   95 scsi_tmf_3        7
+   96 scsi_eh_4         7
+   97 scsi_tmf_4        7
+   98 scsi_eh_5         7
+   99 scsi_tmf_5        7
+  100 scsi_eh_6         7
+  101 scsi_tmf_6        7
+  102 scsi_eh_7         7
+  103 scsi_tmf_7        7
+  104 scsi_eh_8         7
+  105 scsi_tmf_8        7
+  106 scsi_eh_9         7
+  107 scsi_tmf_9        7
+  108 scsi_eh_10        7
+  109 scsi_tmf_10       7
+  110 scsi_eh_11        7
+  111 scsi_tmf_11       7
+  112 scsi_eh_12        7
+  113 scsi_tmf_12       7
+  114 scsi_eh_13        7
+  115 scsi_tmf_13       7
+  116 scsi_eh_14        7
+  117 scsi_tmf_14       7
+  118 scsi_eh_15        7
+  119 scsi_tmf_15       7
+  120 scsi_eh_16        7
+  121 scsi_tmf_16       7
+  122 scsi_eh_17        7
+  123 scsi_tmf_17       7
+  124 scsi_eh_18        7
+  125 scsi_tmf_18       7
+  126 scsi_eh_19        7
+  127 scsi_tmf_19       7
+  128 scsi_eh_20        7
+  129 scsi_tmf_20       7
+  130 scsi_eh_21        7
+  131 scsi_tmf_21       7
+  132 scsi_eh_22        7
+  133 scsi_tmf_22       7
+  134 scsi_eh_23        7
+  135 scsi_tmf_23       7
+  136 scsi_eh_24        7
+  137 scsi_tmf_24       7
+  138 scsi_eh_25        7
+  139 scsi_tmf_25       7
+  140 scsi_eh_26        7
+  141 scsi_tmf_26       7
+  142 scsi_eh_27        7
+  143 scsi_tmf_27       7
+  144 scsi_eh_28        7
+  145 scsi_tmf_28       7
+  146 scsi_eh_29        7
+  147 scsi_tmf_29       7
+  148 scsi_eh_30        7
+  150 scsi_tmf_30       7
+  152 scsi_eh_31        7
+  154 scsi_tmf_31       7
+  178 kworker/u128:28   7
+  179 kworker/u128:29   7
+  183 kworker/1:1H-kb   7
+  184 ipv6_addrconf     7
+  225 mpt_poll_0        7
+  226 mpt/0             7
+  227 scsi_eh_32        7
+  228 scsi_tmf_32       7
+  230 kworker/0:1H-kb   7
+  251 jbd2/sda1-8       7
+  252 ext4-rsv-conver   7
+  288 systemd-journal   7
+  342 systemd-udevd     7
+  429 systemd-resolve   7
+  430 VGAuthService     7
+  432 systemd-timesyn   7
+  434 vmtoolsd          7
+  438 accounts-daemon   7
+  441 cron              7
+  445 networkd-dispat   7
+  447 systemd-logind    7
+  448 udisksd           7
+  452 cupsd             7
+  457 kworker/0:3-rcu   7
+  460 irqbalance        7
+  461 ModemManager      7
+  462 avahi-daemon      7
+  464 acpid             7
+  466 dbus-daemon       7
+  472 avahi-daemon      7
+  502 wpa_supplicant    7
+  503 NetworkManager    7
+  505 cups-browsed      7
+  506 polkitd           7
+  528 dbus              7
+  530 dbus              7
+  532 dbus              7
+  534 dbus              7
+  536 dbus              7
+  537 dbus              7
+  540 dbus              7
+  543 dbus              7
+  548 dbus              7
+  552 dbus              7
+  554 dbus              7
+  555 dbus              7
+  556 dbus              7
+  557 dbus              7
+  560 dbus              7
+  562 snapd             7
+  563 dbus              7
+  601 unattended-upgr   7
+  652 agetty            7
+  669 gdm3              7
+  699 sshd              7
+  718 gdm-session-wor   7
+  722 dhclient          7
+  751 whoopsie          7
+  762 kerneloops        7
+  766 kerneloops        7
+  799 systemd           7
+  800 (sd-pam)          7
+  840 gdm-wayland-ses   7
+  842 dbus-daemon       7
+  844 gnome-session-b   7
+  860 gnome-shell       7
+  867 upowerd           7
+  880 Xwayland          7
+  887 at-spi-bus-laun   7
+  892 dbus-daemon       7
+  894 at-spi2-registr   7
+  898 pulseaudio        0
+  899 rtkit-daemon      0
+  911 ibus-daemon       7
+  914 ibus-dconf        7
+  916 ibus-x11          7
+  922 ibus-portal       7
+  927 xdg-permission-   7
+  932 boltd             7
+  939 packagekitd       7
+  940 gsd-xsettings     7
+  943 gsd-a11y-settin   7
+  946 gsd-clipboard     7
+  948 gsd-color         7
+  950 gsd-datetime      7
+  952 gsd-housekeepin   7
+  955 gsd-keyboard      7
+  958 gsd-media-keys    7
+  960 gsd-mouse         7
+  963 gsd-power         7
+  964 gsd-print-notif   7
+  967 gsd-rfkill        7
+  970 gsd-screensaver   7
+  975 gsd-sharing       7
+  978 gsd-smartcard     7
+  985 gsd-sound         7
+  988 gsd-wacom         7
+  993 ibus-engine-sim   7
+ 1029 colord            7
+ 1045 gdm-session-wor   7
+ 1049 systemd           7
+ 1050 (sd-pam)          7
+ 1063 gnome-keyring-d   7
+ 1067 gdm-x-session     7
+ 1069 Xorg              7
+ 1075 dbus-daemon       7
+ 1078 gnome-session-b   7
+ 1173 ssh-agent         7
+ 1175 at-spi-bus-laun   7
+ 1180 dbus-daemon       7
+ 1182 at-spi2-registr   7
+ 1201 gnome-shell       7
+ 1207 gvfsd             7
+ 1216 pulseaudio        0
+ 1226 ibus-daemon       7
+ 1229 xdg-permission-   7
+ 1231 gnome-shell-cal   7
+ 1238 ibus-dconf        7
+ 1241 ibus-x11          7
+ 1246 ibus-portal       7
+ 1255 evolution-sourc   7
+ 1264 dconf-service     7
+ 1270 goa-daemon        7
+ 1271 gvfs-udisks2-vo   7
+ 1277 gvfs-goa-volume   7
+ 1286 goa-identity-se   7
+ 1291 gvfs-afc-volume   7
+ 1296 gvfs-mtp-volume   7
+ 1300 gvfs-gphoto2-vo   7
+ 1304 gsd-power         7
+ 1309 gsd-print-notif   7
+ 1310 gsd-rfkill        7
+ 1315 gsd-screensaver   7
+ 1319 gsd-sharing       7
+ 1322 gsd-smartcard     7
+ 1325 gsd-sound         7
+ 1328 gsd-xsettings     7
+ 1332 gsd-wacom         7
+ 1342 gsd-clipboard     7
+ 1344 gsd-a11y-settin   7
+ 1347 gsd-datetime      7
+ 1349 gsd-color         7
+ 1352 gsd-keyboard      7
+ 1355 gsd-housekeepin   7
+ 1363 gsd-mouse         7
+ 1366 gsd-media-keys    7
+ 1381 evolution-calen   7
+ 1393 gsd-printer       7
+ 1396 ibus-engine-sim   7
+ 1426 evolution-calen   7
+ 1440 evolution-addre   7
+ 1448 evolution-addre   7
+ 1468 nautilus-deskto   7
+ 1471 vmtoolsd          7
+ 1475 gsd-disk-utilit   7
+ 1485 gvfsd-trash       7
+ 1507 gvfsd-metadata    7
+ 1517 gnome-terminal-   7
+ 1526 bash              7
+ 1559 update-notifier   7
+ 1561 gnome-software    7
+ 1586 fwupd             7
+ 1695 deja-dup-monito   7
+ 1852 kworker/1:2-mm_   7
+ 1895 kworker/1:0-mm_   7
+ 1922 bash              7
+ 2011 kworker/1:1-eve   7
+ 2019 sudo              7
+ 2020 test              7
+ 2021 test              7
+ 2022 test              7
+ 2023 test              7
+ 2024 test              7
+ 2025 test              0
+ 2026 test              5
+ 2027 test              1
+ 2028 test              2
+ 2029 test              0
+ 2030 test              5
+ 2031 test              1
+ 2032 test              2
+ 2033 ps                7

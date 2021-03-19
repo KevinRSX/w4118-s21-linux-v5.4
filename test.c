@@ -12,6 +12,7 @@
 #include <sys/sysinfo.h>
 
 #define MAX_CPUS 8
+#define STR_LEN 50
 
 #define __NR_SYSCALL_GET_WRR_INFO 436
 #define __NR_SYSCALL_SET_WRR_WEIGHT 437
@@ -133,15 +134,14 @@ int main(int argc, char **argv)
 	int other_pids[MAX_CHILDREN];
 	int cpu_no, is_mixed, mcnt = 0;
 	int iter = 5;
-	char filename[25];
+	char filename[STR_LEN];
 
 	if (argc != 4) {
-		fprintf(stderr, "usage: %s nr_cpu nr_io bool_mixed_test\n", argv[0]);
+		fprintf(stderr, "usage: %s nr_cpu nr_io is_mixed_testing\n", argv[0]);
 		exit(1);
 	}
 
 	cpu_no = get_nprocs();
-	//printf("# of CPUs: %d/%d\n", get_nprocs(), get_nprocs_conf());
 
 	nr_cpu = atoi(argv[1]);
 	if (nr_cpu <= 0 || nr_cpu >= 1000) {
@@ -178,29 +178,34 @@ int main(int argc, char **argv)
 	if (is_mixed) {
 		for (int i = 0; i < 1; i++) {
 			int weight = 1;
-			//other_pids[mcnt] = bear_cpu_child(weight);
-			//setscheduler(other_pids[mcnt++], SCHED_OTHER);
-			//other_pids[mcnt] = bear_cpu_child(weight);
-			//setscheduler(other_pids[mcnt++], SCHED_IDLE);
-			//other_pids[mcnt] = bear_cpu_child(weight);
-			//setscheduler(other_pids[mcnt++], SCHED_FIFO);
+			other_pids[mcnt] = bear_cpu_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_OTHER);
+			other_pids[mcnt] = bear_cpu_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_IDLE);
+			other_pids[mcnt] = bear_cpu_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_FIFO);
 			other_pids[mcnt] = bear_cpu_child(weight);
 			setscheduler(other_pids[mcnt++], SCHED_RR);
 
 			weight = 10;
-			//other_pids[mcnt] = bear_io_child(weight);
-			//setscheduler(other_pids[mcnt++], SCHED_OTHER);
-			//other_pids[mcnt] = bear_io_child(weight);
-			//setscheduler(other_pids[mcnt++], SCHED_IDLE);
-			//other_pids[mcnt] = bear_io_child(weight);
-			//setscheduler(other_pids[mcnt++], SCHED_FIFO);
+			other_pids[mcnt] = bear_io_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_OTHER);
+			other_pids[mcnt] = bear_io_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_IDLE);
+			other_pids[mcnt] = bear_io_child(weight);
+			setscheduler(other_pids[mcnt++], SCHED_FIFO);
 			other_pids[mcnt] = bear_cpu_child(weight);
 			setscheduler(other_pids[mcnt++], SCHED_RR);
 
 		}
 	}
 
-	snprintf(filename, 25, "./test_sample_%d_core.txt", cpu_no);
+	if (!is_mixed) {
+		snprintf(filename, STR_LEN, "./test_sample_%d_core.txt", cpu_no);
+	} else {
+		snprintf(filename, STR_LEN, "./test_sample_%d_core_mixed.txt", cpu_no);
+	}
+
 	FILE *f = fopen(filename, "w");
 	do {
 		get_and_print_wrr_info(f, filename);

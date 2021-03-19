@@ -1,0 +1,36 @@
+wrr_info:
+====================
+Total # of CPUs: 4
+CPU No.        	0      	1      	2      	3      
+nr_running     	38     	39     	38     	39     
+total_weight   	380    	381    	375    	381    
+wrr_info:
+====================
+Total # of CPUs: 4
+CPU No.        	0      	1      	2      	3      
+nr_running     	13     	17     	16     	19     
+total_weight   	49     	53     	56     	46     
+wrr_info:
+====================
+Total # of CPUs: 4
+CPU No.        	0      	1      	2      	3      
+nr_running     	8      	15     	19     	21     
+total_weight   	44     	42     	50     	48     
+wrr_info:
+====================
+Total # of CPUs: 4
+CPU No.        	0      	1      	2      	3      
+nr_running     	7      	14     	20     	21     
+total_weight   	34     	41     	60     	39     
+wrr_info:
+====================
+Total # of CPUs: 4
+CPU No.        	0      	1      	2      	3      
+nr_running     	8      	16     	13     	25     
+total_weight   	44     	43     	44     	43     
+wrr_info:
+====================
+Total # of CPUs: 4
+CPU No.        	0      	1      	2      	3      
+nr_running     	6      	14     	13     	28     
+total_weight   	33     	41     	44     	46     
