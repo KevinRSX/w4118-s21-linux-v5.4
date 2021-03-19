@@ -36,7 +36,7 @@ void set_wrr_weight(int weight)
 		fprintf(stderr, "err: %s\n", strerror(errno));
 }
 
-int counters[NR_CHILDREN];
+int counter;
 
 /*wrapper of the sched_setscheduler*/
 void setscheduler(pid_t pid, int policy)
@@ -60,10 +60,10 @@ void setscheduler(pid_t pid, int policy)
 
 void handle_sigterm(int sig)
 {
-	printf("%d\n", counters[0]);
+	printf("%d\n", counter);
 }
 
-int bear_cpu_child(int weight, int index)
+pid_t bear_cpu_child(int weight)
 {
 	pid_t pid;
 	pid = fork();
@@ -74,11 +74,10 @@ int bear_cpu_child(int weight, int index)
 		signal(SIGTERM, handle_sigterm);
 		while (1) {
 			t++;
-			if (t % 2000 == 0) {
-				counters[index]++;
-			//	printf("%d\n", counters[index]);
+			if (t % 10000  == 0) {
+				counter++;
 			}
-			if (t == 10000) {
+			if (t == 50000) {
 				t = 0;
 			}
 		}
@@ -89,27 +88,42 @@ int bear_cpu_child(int weight, int index)
 	return pid;
 }
 
+
+pid_t bear_weight1_child()
+{
+	pid_t pid;
+	pid = fork();
+	int t = 0;
+
+	if (!pid) {
+		set_wrr_weight(1);
+		while (1)
+			;
+	} else if (pid < 0) {
+		fprintf(stderr, "fork err: %s", strerror(errno));
+		exit(-1);
+	}
+	return pid;
+}
+
 int main(int argc, char **argv)
 {
-	int nr_cpu = 1, iter = 0;
-	int weight[] = {1, 5, 10, 15, 20};
-	int cpu_pids[5];
+	int weight;
+	pid_t pid_normal_child, pid_weight1_child;
 
-	for (int i = 0; i < nr_cpu; i++) {
-		counters[i] = 0;
-		cpu_pids[i] = bear_cpu_child(weight[i], i);
-		setscheduler(cpu_pids[i], SCHED_WRR);
+	if (argc != 2) {
+		fprintf(stderr, "usage: %s child_weight", argv[0]);
+		exit(1);
 	}
 
-	do {
-		sleep(5);
-	} while (iter--);
+	weight = atoi(argv[1]);
+	pid_normal_child = bear_cpu_child(weight);
+	pid_weight1_child = bear_weight1_child();
 
+	sleep(15);
+	kill(pid_normal_child, SIGTERM);
+	sleep(1);
+	kill(pid_normal_child, SIGKILL);
+	kill(pid_weight1_child, SIGKILL);
 
-	for (int i = 0; i < nr_cpu; i++) {
-		kill(cpu_pids[i], SIGTERM);
-		sleep(1);
-		kill(cpu_pids[i], SIGKILL);
-	}
-	return 0;
 }
